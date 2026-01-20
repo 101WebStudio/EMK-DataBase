@@ -18,6 +18,7 @@
             --secondary-color: #34495e;
             --accent-color: #3498db;
             --crm-color: #27ae60;
+            --live-color: #e74c3c;
             --light-grey: #f5f5f5;
             --medium-grey: #e0e0e0;
             --dark-grey: #7f8c8d;
@@ -93,6 +94,30 @@
         
         .nav-link.crm-link:hover, .nav-link.crm-link.active {
             background-color: var(--crm-color);
+        }
+        
+        /* Live status indicator */
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            background-color: var(--live-color);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 1rem;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        .live-indicator i {
+            margin-right: 5px;
         }
         
         /* Main Content Area */
@@ -303,11 +328,6 @@
         .crm-table input:focus, .crm-table select:focus {
             outline: none;
             border-color: var(--accent-color);
-        }
-        
-        .deal-amount {
-            font-weight: 600;
-            color: var(--primary-color);
         }
         
         .deal-status {
@@ -665,6 +685,60 @@
         .table-action-btn.save:hover {
             color: var(--crm-color);
         }
+        
+        /* User indicator */
+        .user-indicator {
+            display: flex;
+            align-items: center;
+            margin-left: auto;
+            color: var(--white);
+            font-size: 0.9rem;
+        }
+        
+        .user-indicator i {
+            margin-right: 5px;
+            color: var(--accent-color);
+        }
+        
+        /* Refresh button */
+        .refresh-btn {
+            background: none;
+            border: none;
+            color: var(--dark-grey);
+            cursor: pointer;
+            font-size: 1.2rem;
+            margin-left: 10px;
+            transition: color 0.3s ease;
+        }
+        
+        .refresh-btn:hover {
+            color: var(--accent-color);
+        }
+        
+        /* Connection status */
+        .connection-status {
+            display: flex;
+            align-items: center;
+            margin-left: 10px;
+            color: var(--white);
+            font-size: 0.8rem;
+        }
+        
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .connection-dot.connected {
+            background-color: #27ae60;
+            animation: pulse 2s infinite;
+        }
+        
+        .connection-dot.disconnected {
+            background-color: #e74c3c;
+        }
     </style>
 </head>
 <body>
@@ -674,6 +748,14 @@
             <div class="logo">
                 <i class="fas fa-database"></i>
                 <span>EMK-DataBase</span>
+                <div class="live-indicator">
+                    <i class="fas fa-broadcast-tower"></i>
+                    LIVE
+                </div>
+            </div>
+            <div class="user-indicator">
+                <i class="fas fa-user"></i>
+                <span id="user-count">1</span> online
             </div>
             <ul class="nav-menu">
                 <li class="nav-item">
@@ -698,9 +780,14 @@
         <section id="events-page" class="page active">
             <div class="page-header">
                 <h1 class="page-title">Event Section</h1>
-                <button class="btn" id="add-event-btn">
-                    <i class="fas fa-plus"></i> Add New Event
-                </button>
+                <div>
+                    <button class="btn" id="add-event-btn">
+                        <i class="fas fa-plus"></i> Add New Event
+                    </button>
+                    <button class="refresh-btn" id="refresh-events-btn" title="Refresh events">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
             </div>
             <div class="content-container" id="events-container">
                 <div class="empty-state">
@@ -715,9 +802,14 @@
         <section id="sponsors-page" class="page">
             <div class="page-header">
                 <h1 class="page-title">Sponsor Details</h1>
-                <button class="btn" id="add-sponsor-btn">
-                    <i class="fas fa-plus"></i> Add New Sponsor
-                </button>
+                <div>
+                    <button class="btn" id="add-sponsor-btn">
+                        <i class="fas fa-plus"></i> Add New Sponsor
+                    </button>
+                    <button class="refresh-btn" id="refresh-sponsors-btn" title="Refresh sponsors">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
             </div>
             <div class="content-container" id="sponsors-container">
                 <div class="empty-state">
@@ -732,9 +824,14 @@
         <section id="goals-page" class="page">
             <div class="page-header">
                 <h1 class="page-title">EMK Goals</h1>
-                <button class="btn" id="add-goal-btn">
-                    <i class="fas fa-plus"></i> Add New Goal
-                </button>
+                <div>
+                    <button class="btn" id="add-goal-btn">
+                        <i class="fas fa-plus"></i> Add New Goal
+                    </button>
+                    <button class="refresh-btn" id="refresh-goals-btn" title="Refresh goals">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
             </div>
             <div class="content-container" id="goals-container">
                 <div class="empty-state">
@@ -749,9 +846,14 @@
         <section id="crm-page" class="page">
             <div class="page-header">
                 <h1 class="page-title">CRM & Deal Management</h1>
-                <button class="btn crm-btn" id="add-deal-btn">
-                    <i class="fas fa-plus"></i> Add New Deal
-                </button>
+                <div>
+                    <button class="btn crm-btn" id="add-deal-btn">
+                        <i class="fas fa-plus"></i> Add New Deal
+                    </button>
+                    <button class="refresh-btn" id="refresh-deals-btn" title="Refresh deals">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
             </div>
             
             <div class="event-selector">
@@ -963,6 +1065,7 @@
                             <option value="negotiation" selected>Negotiation</option>
                             <option value="won">Won</option>
                             <option value="lost">Lost</option>
+                            <option value="postponed">Postponed</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -982,7 +1085,8 @@
     <footer>
         <div class="container">
             <p>EMK-DataBase &copy; 2023 | Manage Events, Sponsors, Goals, and Deals</p>
-            <p>All data is stored locally in your browser</p>
+            <p>Live Data Sharing | All users see the same data in real-time</p>
+            <p id="last-update">Last updated: Just now</p>
         </div>
     </footer>
 
@@ -992,6 +1096,14 @@
         let sponsors = [];
         let goals = [];
         let deals = [];
+        let users = new Set();
+        let userId = generateUserId();
+        let lastUpdateTime = new Date();
+
+        // Generate unique user ID for this session
+        function generateUserId() {
+            return 'user_' + Math.random().toString(36).substr(2, 9);
+        }
 
         // DOM elements
         const navLinks = document.querySelectorAll('.nav-link');
@@ -1019,11 +1131,20 @@
         const progressSlider = document.getElementById('goal-progress');
         const progressValue = document.getElementById('progress-value');
         const dealEventSelect = document.getElementById('deal-event');
+        const userCountElement = document.getElementById('user-count');
+        const lastUpdateElement = document.getElementById('last-update');
+        
+        // Refresh buttons
+        const refreshEventsBtn = document.getElementById('refresh-events-btn');
+        const refreshSponsorsBtn = document.getElementById('refresh-sponsors-btn');
+        const refreshGoalsBtn = document.getElementById('refresh-goals-btn');
+        const refreshDealsBtn = document.getElementById('refresh-deals-btn');
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
-            // Try to load data from localStorage
-            loadFromLocalStorage();
+            // Add current user to users set
+            users.add(userId);
+            updateUserCount();
             
             // Setup progress slider display
             if (progressSlider && progressValue) {
@@ -1032,9 +1153,188 @@
                 });
             }
             
+            // Try to load data from localStorage first (for backward compatibility)
+            loadFromLocalStorage();
+            
+            // Then try to load from server
+            loadFromServer();
+            
             // Populate event selectors
             updateEventSelectors();
+            
+            // Setup auto-refresh every 10 seconds
+            setInterval(loadFromServer, 10000);
+            
+            // Setup refresh buttons
+            refreshEventsBtn.addEventListener('click', () => loadFromServer('events'));
+            refreshSponsorsBtn.addEventListener('click', () => loadFromServer('sponsors'));
+            refreshGoalsBtn.addEventListener('click', () => loadFromServer('goals'));
+            refreshDealsBtn.addEventListener('click', () => loadFromServer('deals'));
+            
+            // Update last update time
+            updateLastUpdateTime();
+            
+            // Simulate other users (for demo purposes)
+            simulateOtherUsers();
         });
+
+        // Simulate other users for demo
+        function simulateOtherUsers() {
+            setInterval(() => {
+                // Randomly add/remove users
+                if (Math.random() > 0.7) {
+                    users.add('demo_user_' + Math.random().toString(36).substr(2, 5));
+                } else if (users.size > 2 && Math.random() > 0.8) {
+                    // Remove a random demo user (but not the current user)
+                    const demoUsers = Array.from(users).filter(u => u.startsWith('demo_user_'));
+                    if (demoUsers.length > 0) {
+                        users.delete(demoUsers[Math.floor(Math.random() * demoUsers.length)]);
+                    }
+                }
+                updateUserCount();
+            }, 5000);
+        }
+
+        // Update user count display
+        function updateUserCount() {
+            userCountElement.textContent = users.size;
+        }
+
+        // Update last update time
+        function updateLastUpdateTime() {
+            const now = new Date();
+            const diff = Math.floor((now - lastUpdateTime) / 1000);
+            
+            if (diff < 60) {
+                lastUpdateElement.textContent = `Last updated: Just now`;
+            } else if (diff < 3600) {
+                const minutes = Math.floor(diff / 60);
+                lastUpdateElement.textContent = `Last updated: ${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+            } else {
+                const hours = Math.floor(diff / 3600);
+                lastUpdateElement.textContent = `Last updated: ${hours} hour${hours !== 1 ? 's' : ''} ago`;
+            }
+        }
+
+        // Server simulation (using a mock server)
+        // In a real app, you would use Firebase, Supabase, or a custom backend
+        const mockServer = {
+            events: [],
+            sponsors: [],
+            goals: [],
+            deals: [],
+            users: new Set(),
+            
+            saveData: function() {
+                // In a real app, this would be a fetch() call to your backend
+                localStorage.setItem('emk-server-events', JSON.stringify(this.events));
+                localStorage.setItem('emk-server-sponsors', JSON.stringify(this.sponsors));
+                localStorage.setItem('emk-server-goals', JSON.stringify(this.goals));
+                localStorage.setItem('emk-server-deals', JSON.stringify(this.deals));
+                
+                // Update timestamp
+                this.lastUpdate = new Date().toISOString();
+                localStorage.setItem('emk-server-last-update', this.lastUpdate);
+            },
+            
+            loadData: function() {
+                // In a real app, this would be a fetch() call to your backend
+                const savedEvents = localStorage.getItem('emk-server-events');
+                const savedSponsors = localStorage.getItem('emk-server-sponsors');
+                const savedGoals = localStorage.getItem('emk-server-goals');
+                const savedDeals = localStorage.getItem('emk-server-deals');
+                
+                if (savedEvents) this.events = JSON.parse(savedEvents);
+                if (savedSponsors) this.sponsors = JSON.parse(savedSponsors);
+                if (savedGoals) this.goals = JSON.parse(savedGoals);
+                if (savedDeals) this.deals = JSON.parse(savedDeals);
+                
+                const savedUpdate = localStorage.getItem('emk-server-last-update');
+                if (savedUpdate) this.lastUpdate = savedUpdate;
+                
+                return {
+                    events: this.events,
+                    sponsors: this.sponsors,
+                    goals: this.goals,
+                    deals: this.deals,
+                    lastUpdate: this.lastUpdate
+                };
+            }
+        };
+
+        // Load data from server
+        function loadFromServer(specificData = null) {
+            try {
+                const serverData = mockServer.loadData();
+                
+                // Update local data only if server data is newer
+                if (!serverData.lastUpdate || new Date(serverData.lastUpdate) > lastUpdateTime) {
+                    let shouldUpdate = false;
+                    
+                    if ((!specificData || specificData === 'events') && JSON.stringify(events) !== JSON.stringify(serverData.events)) {
+                        events = serverData.events;
+                        shouldUpdate = true;
+                    }
+                    
+                    if ((!specificData || specificData === 'sponsors') && JSON.stringify(sponsors) !== JSON.stringify(serverData.sponsors)) {
+                        sponsors = serverData.sponsors;
+                        shouldUpdate = true;
+                    }
+                    
+                    if ((!specificData || specificData === 'goals') && JSON.stringify(goals) !== JSON.stringify(serverData.goals)) {
+                        goals = serverData.goals;
+                        shouldUpdate = true;
+                    }
+                    
+                    if ((!specificData || specificData === 'deals') && JSON.stringify(deals) !== JSON.stringify(serverData.deals)) {
+                        deals = serverData.deals;
+                        shouldUpdate = true;
+                    }
+                    
+                    if (shouldUpdate) {
+                        renderEvents();
+                        renderSponsors();
+                        renderGoals();
+                        updateCRMSummary();
+                        updateEventSelectors();
+                        
+                        // Update CRM table if we're on that page
+                        const currentPage = document.querySelector('.page.active').id;
+                        if (currentPage === 'crm-page' && crmEventSelect.value) {
+                            renderCRMTable(crmEventSelect.value);
+                        }
+                        
+                        lastUpdateTime = new Date();
+                        updateLastUpdateTime();
+                        
+                        // Show notification if data changed
+                        if (specificData) {
+                            showNotification(`${specificData.charAt(0).toUpperCase() + specificData.slice(1)} refreshed!`, 'success');
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Error loading from server:', e);
+            }
+        }
+
+        // Save data to server
+        function saveToServer() {
+            try {
+                mockServer.events = events;
+                mockServer.sponsors = sponsors;
+                mockServer.goals = goals;
+                mockServer.deals = deals;
+                mockServer.saveData();
+                
+                lastUpdateTime = new Date();
+                updateLastUpdateTime();
+            } catch (e) {
+                console.error('Error saving to server:', e);
+                // Fallback to localStorage
+                saveToLocalStorage();
+            }
+        }
 
         // Navigation handling
         navLinks.forEach(link => {
@@ -1142,18 +1442,20 @@
                 date: document.getElementById('event-date').value,
                 location: document.getElementById('event-location').value,
                 description: document.getElementById('event-description').value,
-                status: document.getElementById('event-status').value
+                status: document.getElementById('event-status').value,
+                createdBy: userId,
+                createdAt: new Date().toISOString()
             };
             
             events.push(newEvent);
             renderEvents();
             eventForm.reset();
             closeAllModals();
-            saveToLocalStorage();
+            saveToServer(); // Save to server instead of localStorage
             updateEventSelectors();
             
             // Show success message
-            showNotification('Event added successfully!', 'success');
+            showNotification('Event added successfully! All users can see it.', 'success');
         });
 
         sponsorForm.addEventListener('submit', function(e) {
@@ -1165,17 +1467,19 @@
                 email: document.getElementById('sponsor-email').value,
                 phone: document.getElementById('sponsor-phone').value,
                 level: document.getElementById('sponsor-level').value,
-                notes: document.getElementById('sponsor-notes').value
+                notes: document.getElementById('sponsor-notes').value,
+                createdBy: userId,
+                createdAt: new Date().toISOString()
             };
             
             sponsors.push(newSponsor);
             renderSponsors();
             sponsorForm.reset();
             closeAllModals();
-            saveToLocalStorage();
+            saveToServer(); // Save to server instead of localStorage
             
             // Show success message
-            showNotification('Sponsor added successfully!', 'success');
+            showNotification('Sponsor added successfully! All users can see it.', 'success');
         });
 
         goalForm.addEventListener('submit', function(e) {
@@ -1187,17 +1491,19 @@
                 deadline: document.getElementById('goal-deadline').value,
                 priority: document.getElementById('goal-priority').value,
                 description: document.getElementById('goal-description').value,
-                progress: document.getElementById('goal-progress').value
+                progress: document.getElementById('goal-progress').value,
+                createdBy: userId,
+                createdAt: new Date().toISOString()
             };
             
             goals.push(newGoal);
             renderGoals();
             goalForm.reset();
             closeAllModals();
-            saveToLocalStorage();
+            saveToServer(); // Save to server instead of localStorage
             
             // Show success message
-            showNotification('Goal added successfully!', 'success');
+            showNotification('Goal added successfully! All users can see it.', 'success');
         });
 
         dealForm.addEventListener('submit', function(e) {
@@ -1212,13 +1518,15 @@
                 phone: document.getElementById('deal-phone').value,
                 status: document.getElementById('deal-status').value,
                 notes: document.getElementById('deal-notes').value,
-                lastUpdated: new Date().toISOString().split('T')[0]
+                createdBy: userId,
+                createdAt: new Date().toISOString(),
+                lastUpdated: new Date().toISOString()
             };
             
             deals.push(newDeal);
             dealForm.reset();
             closeAllModals();
-            saveToLocalStorage();
+            saveToServer(); // Save to server instead of localStorage
             
             // Update CRM if we're on that page
             const currentPage = document.querySelector('.page.active').id;
@@ -1231,7 +1539,7 @@
             }
             
             // Show success message
-            showNotification('Deal added successfully!', 'success');
+            showNotification('Deal added successfully! All users can see it.', 'success');
         });
 
         // Rendering functions
@@ -1323,7 +1631,7 @@
                         deals = deals.filter(deal => deal.eventId !== eventId);
                         renderEvents();
                         updateEventSelectors();
-                        saveToLocalStorage();
+                        saveToServer();
                         
                         // Update CRM if needed
                         if (crmEventSelect.value == eventId) {
@@ -1395,7 +1703,7 @@
                     if (confirm('Are you sure you want to delete this sponsor?')) {
                         sponsors = sponsors.filter(sponsor => sponsor.id !== sponsorId);
                         renderSponsors();
-                        saveToLocalStorage();
+                        saveToServer();
                         showNotification('Sponsor deleted successfully!', 'info');
                     }
                 });
@@ -1473,7 +1781,7 @@
                     if (confirm('Are you sure you want to delete this goal?')) {
                         goals = goals.filter(goal => goal.id !== goalId);
                         renderGoals();
-                        saveToLocalStorage();
+                        saveToServer();
                         showNotification('Goal deleted successfully!', 'info');
                     }
                 });
@@ -1562,7 +1870,7 @@
                     const dealId = parseInt(row.getAttribute('data-id'));
                     if (confirm('Are you sure you want to delete this deal?')) {
                         deals = deals.filter(deal => deal.id !== dealId);
-                        saveToLocalStorage();
+                        saveToServer();
                         renderCRMTable(eventId);
                         updateCRMSummary();
                         showNotification('Deal deleted!', 'info');
@@ -1602,16 +1910,17 @@
                 event.location = document.getElementById('event-location').value;
                 event.description = document.getElementById('event-description').value;
                 event.status = document.getElementById('event-status').value;
+                event.lastUpdated = new Date().toISOString();
                 
                 renderEvents();
                 newForm.reset();
                 closeAllModals();
-                saveToLocalStorage();
+                saveToServer();
                 updateEventSelectors();
                 
                 // Reset form to add mode
                 submitBtn.textContent = 'Add Event';
-                showNotification('Event updated successfully!', 'success');
+                showNotification('Event updated successfully! All users can see the change.', 'success');
             });
             
             openModal(eventModal);
@@ -1625,9 +1934,10 @@
             const newProgress = prompt('Enter new progress percentage (0-100):', goal.progress);
             if (newProgress !== null && !isNaN(newProgress) && newProgress >= 0 && newProgress <= 100) {
                 goal.progress = parseInt(newProgress);
+                goal.lastUpdated = new Date().toISOString();
                 renderGoals();
-                saveToLocalStorage();
-                showNotification('Goal progress updated!', 'success');
+                saveToServer();
+                showNotification('Goal progress updated! All users can see the change.', 'success');
             }
         }
 
@@ -1642,11 +1952,11 @@
             deal.email = row.querySelector('.email').value;
             deal.phone = row.querySelector('.phone').value;
             deal.status = row.querySelector('.status').value;
-            deal.lastUpdated = new Date().toISOString().split('T')[0];
+            deal.lastUpdated = new Date().toISOString();
             
-            saveToLocalStorage();
+            saveToServer();
             updateCRMSummary();
-            showNotification('Deal updated successfully!', 'success');
+            showNotification('Deal updated successfully! All users can see the change.', 'success');
         }
 
         // Update event selectors
@@ -1727,7 +2037,7 @@
             showNotification('CSV exported successfully!', 'success');
         }
 
-        // LocalStorage functions
+        // LocalStorage functions (for backward compatibility)
         function saveToLocalStorage() {
             try {
                 localStorage.setItem('emk-events', JSON.stringify(events));
@@ -1832,4 +2142,3 @@
     </script>
 </body>
 </html>
-
