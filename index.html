@@ -1656,7 +1656,7 @@
         // Delete deals by event ID
         function deleteDealsByEvent(eventId) {
             const batch = db.batch();
-            const eventDeals = deals.filter(deal => deal.eventId == eventId);
+            const eventDeals = deals.filter(deal => deal.eventId === eventId);
             
             eventDeals.forEach(deal => {
                 const dealRef = db.collection('deals').doc(deal.id);
@@ -1748,7 +1748,7 @@
                 renderCRMTable(eventId);
                 
                 // Update subtitle with event name
-                const selectedEvent = events.find(e => e.id == eventId);
+                const selectedEvent = events.find(e => e.id === eventId);
                 if (selectedEvent) {
                     crmEventTitle.textContent = `Deals for: ${selectedEvent.title}`;
                 }
@@ -1837,8 +1837,9 @@
         dealForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
+            // KËTU ËSHTË RREGULLIMI KYÇ - MOS E KONVERTO NË NUMËR!
             const newDeal = {
-                eventId: parseInt(document.getElementById('deal-event').value),
+                eventId: document.getElementById('deal-event').value, // STRING, jo parseInt!
                 company: document.getElementById('deal-company').value,
                 contact: document.getElementById('deal-contact').value,
                 email: document.getElementById('deal-email').value,
@@ -1857,7 +1858,7 @@
                     const currentPage = document.querySelector('.page.active').id;
                     if (currentPage === 'crm-page') {
                         const selectedEventId = crmEventSelect.value;
-                        if (selectedEventId == newDeal.eventId) {
+                        if (selectedEventId === newDeal.eventId) {
                             renderCRMTable(selectedEventId);
                         }
                     }
@@ -1903,8 +1904,8 @@
                     }
                 }
                 
-                // Count deals for this event
-                const eventDeals = deals.filter(d => d.eventId === parseInt(event.id));
+                // Count deals for this event - PËRDOR === PËR KRAHASIM STRING
+                const eventDeals = deals.filter(d => d.eventId === event.id);
                 const dealCount = eventDeals.length;
                 
                 return `
@@ -2145,7 +2146,8 @@
 
         // CRM Table rendering
         function renderCRMTable(eventId) {
-            const eventDeals = deals.filter(deal => deal.eventId == eventId);
+            // PËRDOR === PËR KRAHASIM STRING
+            const eventDeals = deals.filter(deal => deal.eventId === eventId);
             
             if (eventDeals.length === 0) {
                 crmTableContainer.innerHTML = `
@@ -2392,13 +2394,13 @@
                 return;
             }
             
-            const eventDeals = deals.filter(deal => deal.eventId == eventId);
+            const eventDeals = deals.filter(deal => deal.eventId === eventId);
             if (eventDeals.length === 0) {
                 showNotification('No deals to export for this event!', 'warning');
                 return;
             }
             
-            const event = events.find(e => e.id == eventId);
+            const event = events.find(e => e.id === eventId);
             const eventName = event ? event.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'deals';
             
             // Create CSV content
