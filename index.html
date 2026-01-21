@@ -6,7 +6,7 @@
     <title>EMK-DataBase</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK (Version e thjeshtë për GitHub Pages) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -1270,14 +1270,15 @@
 
     <script>
         // ==================== FIREBASE CONFIGURATION ====================
-        // REPLACE THIS WITH YOUR ACTUAL FIREBASE CONFIG
+        // KONFIGURIMI YT I FIREBASE - E KE TË SHTËNË
         const firebaseConfig = {
-            apiKey: "AIzaSyDfX9Qn7V5q5q5q5q5q5q5q5q5q5q5q5q5q5",
-            authDomain: "your-project-id.firebaseapp.com",
-            projectId: "your-project-id",
-            storageBucket: "your-project-id.appspot.com",
-            messagingSenderId: "123456789012",
-            appId: "1:123456789012:web:abc123def456ghi789jkl"
+            apiKey: "AIzaSyCclKkJ3yIhAqSu6P_Dh9mz4FZBxl0832Y",
+            authDomain: "emk-database.firebaseapp.com",
+            projectId: "emk-database",
+            storageBucket: "emk-database.firebasestorage.app",
+            messagingSenderId: "777924221119",
+            appId: "1:777924221119:web:a71b7e36d09502c6a30e0a",
+            measurementId: "G-90ZMVL87QC"
         };
         
         // Initialize Firebase
@@ -1883,11 +1884,24 @@
             eventsContainer.innerHTML = events.map(event => {
                 const statusClass = event.status === 'pending' ? 'pending' : 
                                    event.status === 'confirmed' ? 'confirmed' : 'completed';
-                const formattedDate = event.date ? new Date(event.date.seconds * 1000).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                }) : 'No date';
+                
+                let formattedDate = 'No date';
+                if (event.date) {
+                    // Check if date is a Firestore timestamp or a string
+                    if (event.date.seconds) {
+                        formattedDate = new Date(event.date.seconds * 1000).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+                    } else {
+                        formattedDate = new Date(event.date).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+                    }
+                }
                 
                 // Count deals for this event
                 const eventDeals = deals.filter(d => d.eventId === parseInt(event.id));
@@ -2048,11 +2062,23 @@
             }
             
             goalsContainer.innerHTML = goals.map(goal => {
-                const formattedDate = goal.deadline ? new Date(goal.deadline.seconds * 1000).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                }) : 'No deadline';
+                let formattedDate = 'No deadline';
+                if (goal.deadline) {
+                    // Check if deadline is a Firestore timestamp or a string
+                    if (goal.deadline.seconds) {
+                        formattedDate = new Date(goal.deadline.seconds * 1000).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+                    } else {
+                        formattedDate = new Date(goal.deadline).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+                    }
+                }
                 
                 // Determine priority class
                 let priorityClass = 'priority-medium';
@@ -2226,9 +2252,15 @@
             document.getElementById('event-title').value = event.title;
             
             // Convert Firestore timestamp to date string
-            if (event.date && event.date.seconds) {
-                const date = new Date(event.date.seconds * 1000);
-                document.getElementById('event-date').value = date.toISOString().split('T')[0];
+            if (event.date) {
+                let dateValue = '';
+                if (event.date.seconds) {
+                    const date = new Date(event.date.seconds * 1000);
+                    dateValue = date.toISOString().split('T')[0];
+                } else {
+                    dateValue = event.date;
+                }
+                document.getElementById('event-date').value = dateValue;
             } else {
                 document.getElementById('event-date').value = '';
             }
@@ -2317,7 +2349,14 @@
             // Update CRM event selector
             crmEventSelect.innerHTML = '<option value="">-- Select an Event --</option>' +
                 events.map(event => {
-                    const dateStr = event.date ? new Date(event.date.seconds * 1000).toLocaleDateString('en-US') : 'No date';
+                    let dateStr = 'No date';
+                    if (event.date) {
+                        if (event.date.seconds) {
+                            dateStr = new Date(event.date.seconds * 1000).toLocaleDateString('en-US');
+                        } else {
+                            dateStr = new Date(event.date).toLocaleDateString('en-US');
+                        }
+                    }
                     return `<option value="${event.id}">${event.title} (${dateStr})</option>`;
                 }).join('');
             
