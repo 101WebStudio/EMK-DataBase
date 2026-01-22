@@ -1270,1255 +1270,1297 @@
 
     <script>
         // ==================== FIREBASE CONFIGURATION ====================
-        // KONFIGURIMI YT I FIREBASE - E KE TË SHTËNË
-        const firebaseConfig = {
-            apiKey: "AIzaSyCclKkJ3yIhAqSu6P_Dh9mz4FZBxl0832Y",
-            authDomain: "emk-database.firebaseapp.com",
-            projectId: "emk-database",
-            storageBucket: "emk-database.firebasestorage.app",
-            messagingSenderId: "777924221119",
-            appId: "1:777924221119:web:a71b7e36d09502c6a30e0a",
-            measurementId: "G-90ZMVL87QC"
+// KONFIGURIMI YT I FIREBASE - E KE TË SHTËNË
+const firebaseConfig = {
+    apiKey: "AIzaSyCclKkJ3yIhAqSu6P_Dh9mz4FZBxl0832Y",
+    authDomain: "emk-database.firebaseapp.com",
+    projectId: "emk-database",
+    storageBucket: "emk-database.firebasestorage.app",
+    messagingSenderId: "777924221119",
+    appId: "1:777924221119:web:a71b7e36d09502c6a30e0a",
+    measurementId: "G-90ZMVL87QC"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// Global variables
+let currentUser = null;
+let events = [];
+let sponsors = [];
+let goals = [];
+let deals = [];
+let currentCRMEventId = null; // Variabël e re për të ruajtur eventin aktual në CRM
+
+// DOM elements
+const loginScreen = document.getElementById('login-screen');
+const appContainer = document.getElementById('app-container');
+const loginEmail = document.getElementById('login-email');
+const loginPassword = document.getElementById('login-password');
+const loginBtn = document.getElementById('login-btn');
+const logoutBtn = document.getElementById('logout-btn');
+const registerBox = document.getElementById('register-box');
+const showRegister = document.getElementById('show-register');
+const showLogin = document.getElementById('show-login');
+const registerEmail = document.getElementById('register-email');
+const registerPassword = document.getElementById('register-password');
+const registerName = document.getElementById('register-name');
+const registerBtn = document.getElementById('register-btn');
+const userEmailElement = document.getElementById('user-email');
+
+// App DOM elements
+const navLinks = document.querySelectorAll('.nav-link');
+const pages = document.querySelectorAll('.page');
+const addEventBtn = document.getElementById('add-event-btn');
+const addSponsorBtn = document.getElementById('add-sponsor-btn');
+const addGoalBtn = document.getElementById('add-goal-btn');
+const addDealBtn = document.getElementById('add-deal-btn');
+const exportCsvBtn = document.getElementById('export-csv-btn');
+const eventModal = document.getElementById('event-modal');
+const sponsorModal = document.getElementById('sponsor-modal');
+const goalModal = document.getElementById('goal-modal');
+const dealModal = document.getElementById('deal-modal');
+const closeModalButtons = document.querySelectorAll('.close-modal');
+const eventForm = document.getElementById('event-form');
+const sponsorForm = document.getElementById('sponsor-form');
+const goalForm = document.getElementById('goal-form');
+const dealForm = document.getElementById('deal-form');
+const eventsContainer = document.getElementById('events-container');
+const sponsorsContainer = document.getElementById('sponsors-container');
+const goalsContainer = document.getElementById('goals-container');
+const crmEventSelect = document.getElementById('crm-event-select');
+const crmTableContainer = document.getElementById('crm-table-container');
+const crmEventTitle = document.getElementById('crm-event-title');
+const progressSlider = document.getElementById('goal-progress');
+const progressValue = document.getElementById('progress-value');
+const dealEventSelect = document.getElementById('deal-event');
+const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+const navMenu = document.getElementById('nav-menu');
+
+// Initialize the app
+document.addEventListener('DOMContentLoaded', function() {
+    // Setup progress slider display
+    if (progressSlider && progressValue) {
+        progressSlider.addEventListener('input', function() {
+            progressValue.textContent = this.value + '%';
+        });
+    }
+    
+    // Setup mobile menu toggle
+    if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', function() {
+            navMenu.classList.toggle('active');
+        });
+    }
+    
+    // Close mobile menu when clicking a link
+    navLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                navMenu.classList.remove('active');
+            }
+        });
+    });
+    
+    // Check if user is already logged in
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            // User is signed in
+            currentUser = user;
+            showApp();
+            loadAllData();
+        } else {
+            // No user is signed in
+            showLoginScreen();
+        }
+    });
+    
+    // Setup login/register toggles
+    showRegister.addEventListener('click', function(e) {
+        e.preventDefault();
+        registerBox.style.display = 'block';
+    });
+    
+    showLogin.addEventListener('click', function(e) {
+        e.preventDefault();
+        registerBox.style.display = 'none';
+    });
+});
+
+// Show login screen
+function showLoginScreen() {
+    loginScreen.style.display = 'block';
+    appContainer.style.display = 'none';
+}
+
+// Show app
+function showApp() {
+    loginScreen.style.display = 'none';
+    appContainer.style.display = 'block';
+    userEmailElement.textContent = `Logged in as: ${currentUser.email}`;
+}
+
+// Login function
+loginBtn.addEventListener('click', function() {
+    const email = loginEmail.value;
+    const password = loginPassword.value;
+    
+    if (!email || !password) {
+        showNotification('Please enter email and password', 'warning');
+        return;
+    }
+    
+    auth.signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+            // Signed in successfully
+            showNotification('Login successful!', 'success');
+            loginEmail.value = '';
+            loginPassword.value = '';
+        })
+        .catch((error) => {
+            console.error('Login error:', error);
+            showNotification('Login failed: ' + error.message, 'error');
+        });
+});
+
+// Register function
+registerBtn.addEventListener('click', function() {
+    const email = registerEmail.value;
+    const password = registerPassword.value;
+    const name = registerName.value;
+    
+    if (!email || !password || !name) {
+        showNotification('Please fill all fields', 'warning');
+        return;
+    }
+    
+    auth.createUserWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+            // User created successfully
+            const user = userCredential.user;
+            
+            // Update user profile with name
+            return user.updateProfile({
+                displayName: name
+            });
+        })
+        .then(() => {
+            showNotification('Registration successful!', 'success');
+            registerEmail.value = '';
+            registerPassword.value = '';
+            registerName.value = '';
+            registerBox.style.display = 'none';
+        })
+        .catch((error) => {
+            console.error('Registration error:', error);
+            showNotification('Registration failed: ' + error.message, 'error');
+        });
+});
+
+// Logout function
+logoutBtn.addEventListener('click', function() {
+    auth.signOut()
+        .then(() => {
+            showNotification('Logged out successfully', 'info');
+        })
+        .catch((error) => {
+            console.error('Logout error:', error);
+            showNotification('Logout failed: ' + error.message, 'error');
+        });
+});
+
+// ==================== FIRESTORE FUNCTIONS ====================
+
+// Load all data from Firestore
+function loadAllData() {
+    loadEvents();
+    loadSponsors();
+    loadGoals();
+    loadDeals();
+}
+
+// Load events from Firestore
+function loadEvents() {
+    db.collection('events').orderBy('createdAt', 'desc').onSnapshot((snapshot) => {
+        events = [];
+        snapshot.forEach((doc) => {
+            events.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+        renderEvents();
+        updateEventSelectors();
+    }, (error) => {
+        console.error('Error loading events:', error);
+        eventsContainer.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Error Loading Events</h3>
+                <p>Could not load events from database</p>
+            </div>
+        `;
+    });
+}
+
+// Load sponsors from Firestore
+function loadSponsors() {
+    db.collection('sponsors').orderBy('name').onSnapshot((snapshot) => {
+        sponsors = [];
+        snapshot.forEach((doc) => {
+            sponsors.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+        renderSponsors();
+    }, (error) => {
+        console.error('Error loading sponsors:', error);
+        sponsorsContainer.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Error Loading Sponsors</h3>
+                <p>Could not load sponsors from database</p>
+            </div>
+        `;
+    });
+}
+
+// Load goals from Firestore
+function loadGoals() {
+    db.collection('goals').orderBy('deadline').onSnapshot((snapshot) => {
+        goals = [];
+        snapshot.forEach((doc) => {
+            goals.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+        renderGoals();
+    }, (error) => {
+        console.error('Error loading goals:', error);
+        goalsContainer.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Error Loading Goals</h3>
+                <p>Could not load goals from database</p>
+            </div>
+        `;
+    });
+}
+
+// Load deals from Firestore
+function loadDeals() {
+    db.collection('deals').onSnapshot((snapshot) => {
+        deals = [];
+        snapshot.forEach((doc) => {
+            deals.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+        
+        // Përditëso summary për eventin aktual nëse ka një të zgjedhur
+        if (currentCRMEventId) {
+            updateCRMSummary(currentCRMEventId);
+        } else {
+            // Përndryshe trego totalet për të gjitha deal-et
+            updateCRMSummary();
+        }
+        
+        // Update CRM table if we're on that page
+        const currentPage = document.querySelector('.page.active').id;
+        if (currentPage === 'crm-page' && crmEventSelect.value) {
+            renderCRMTable(crmEventSelect.value);
+        }
+    }, (error) => {
+        console.error('Error loading deals:', error);
+    });
+}
+
+// Save event to Firestore
+function saveEvent(eventData) {
+    return db.collection('events').add({
+        ...eventData,
+        createdBy: currentUser.uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+}
+
+// Save sponsor to Firestore
+function saveSponsor(sponsorData) {
+    return db.collection('sponsors').add({
+        ...sponsorData,
+        createdBy: currentUser.uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+}
+
+// Save goal to Firestore
+function saveGoal(goalData) {
+    return db.collection('goals').add({
+        ...goalData,
+        createdBy: currentUser.uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+}
+
+// Save deal to Firestore
+function saveDeal(dealData) {
+    return db.collection('deals').add({
+        ...dealData,
+        createdBy: currentUser.uid,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    });
+}
+
+// Update event in Firestore
+function updateEvent(eventId, eventData) {
+    return db.collection('events').doc(eventId).update({
+        ...eventData,
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    });
+}
+
+// Update deal in Firestore
+function updateDeal(dealId, dealData) {
+    return db.collection('deals').doc(dealId).update({
+        ...dealData,
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    });
+}
+
+// Update goal in Firestore
+function updateGoal(goalId, goalData) {
+    return db.collection('goals').doc(goalId).update({
+        ...goalData,
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    });
+}
+
+// Delete event from Firestore
+function deleteEvent(eventId) {
+    return db.collection('events').doc(eventId).delete();
+}
+
+// Delete sponsor from Firestore
+function deleteSponsor(sponsorId) {
+    return db.collection('sponsors').doc(sponsorId).delete();
+}
+
+// Delete goal from Firestore
+function deleteGoal(goalId) {
+    return db.collection('goals').doc(goalId).delete();
+}
+
+// Delete deal from Firestore
+function deleteDeal(dealId) {
+    return db.collection('deals').doc(dealId).delete();
+}
+
+// Delete deals by event ID
+function deleteDealsByEvent(eventId) {
+    const batch = db.batch();
+    const eventDeals = deals.filter(deal => deal.eventId === eventId);
+    
+    eventDeals.forEach(deal => {
+        const dealRef = db.collection('deals').doc(deal.id);
+        batch.delete(dealRef);
+    });
+    
+    return batch.commit();
+}
+
+// ==================== APP FUNCTIONALITY ====================
+
+// Navigation handling
+navLinks.forEach(link => {
+    link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const targetPage = this.getAttribute('data-page');
+        
+        // Update active nav link
+        navLinks.forEach(link => link.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Show target page
+        pages.forEach(page => {
+            page.classList.remove('active');
+            if (page.id === `${targetPage}-page`) {
+                page.classList.add('active');
+            }
+        });
+        
+        // If CRM page, update the table
+        if (targetPage === 'crm') {
+            // Përditëso summary bazuar në eventin aktual nëse ka një të zgjedhur
+            if (crmEventSelect.value) {
+                updateCRMSummary(crmEventSelect.value);
+            } else {
+                updateCRMSummary();
+            }
+            const selectedEventId = crmEventSelect.value;
+            if (selectedEventId) {
+                renderCRMTable(selectedEventId);
+            }
+        }
+    });
+});
+
+// Modal handling
+addEventBtn.addEventListener('click', () => openModal(eventModal));
+addSponsorBtn.addEventListener('click', () => openModal(sponsorModal));
+addGoalBtn.addEventListener('click', () => openModal(goalModal));
+addDealBtn.addEventListener('click', () => {
+    // Populate event dropdown in deal modal
+    populateDealEventSelect();
+    openModal(dealModal);
+});
+exportCsvBtn.addEventListener('click', exportDealsToCSV);
+
+closeModalButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        closeAllModals();
+    });
+});
+
+// Close modal when clicking outside
+window.addEventListener('click', (e) => {
+    if (e.target.classList.contains('modal')) {
+        closeAllModals();
+    }
+});
+
+function openModal(modal) {
+    closeAllModals();
+    modal.classList.add('active');
+    
+    // Set today's date as default for date inputs
+    const today = new Date().toISOString().split('T')[0];
+    if (document.getElementById('event-date')) {
+        document.getElementById('event-date').value = today;
+    }
+    if (document.getElementById('goal-deadline')) {
+        document.getElementById('goal-deadline').value = today;
+    }
+}
+
+function closeAllModals() {
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.classList.remove('active');
+    });
+}
+
+// Event selector change - MODIFIKUAR
+crmEventSelect.addEventListener('change', function() {
+    const eventId = this.value;
+    currentCRMEventId = eventId; // Ruaj eventin aktual
+    
+    if (eventId) {
+        renderCRMTable(eventId);
+        updateCRMSummary(eventId); // Përditëso summary për event specifik
+        
+        // Update subtitle with event name
+        const selectedEvent = events.find(e => e.id === eventId);
+        if (selectedEvent) {
+            crmEventTitle.textContent = `Deals for: ${selectedEvent.title}`;
+        }
+    } else {
+        crmTableContainer.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-table"></i>
+                <h3>No Event Selected</h3>
+                <p>Select an event from the dropdown above to view and manage deals</p>
+            </div>
+        `;
+        crmEventTitle.textContent = 'Select an event to view and manage deals';
+        currentCRMEventId = null;
+        
+        // Reset summary
+        document.getElementById('total-deals').textContent = '0';
+        document.getElementById('won-deals').textContent = '0';
+    }
+});
+
+// Form submissions
+eventForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const newEvent = {
+        title: document.getElementById('event-title').value,
+        date: document.getElementById('event-date').value,
+        location: document.getElementById('event-location').value,
+        description: document.getElementById('event-description').value,
+        status: document.getElementById('event-status').value
+    };
+    
+    saveEvent(newEvent)
+        .then(() => {
+            eventForm.reset();
+            closeAllModals();
+            showNotification('Event added successfully!', 'success');
+        })
+        .catch((error) => {
+            console.error('Error adding event:', error);
+            showNotification('Error adding event: ' + error.message, 'error');
+        });
+});
+
+sponsorForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const newSponsor = {
+        name: document.getElementById('sponsor-name').value,
+        email: document.getElementById('sponsor-email').value,
+        phone: document.getElementById('sponsor-phone').value,
+        level: document.getElementById('sponsor-level').value,
+        notes: document.getElementById('sponsor-notes').value
+    };
+    
+    saveSponsor(newSponsor)
+        .then(() => {
+            sponsorForm.reset();
+            closeAllModals();
+            showNotification('Sponsor added successfully!', 'success');
+        })
+        .catch((error) => {
+            console.error('Error adding sponsor:', error);
+            showNotification('Error adding sponsor: ' + error.message, 'error');
+        });
+});
+
+goalForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const newGoal = {
+        title: document.getElementById('goal-title').value,
+        deadline: document.getElementById('goal-deadline').value,
+        priority: document.getElementById('goal-priority').value,
+        description: document.getElementById('goal-description').value,
+        progress: document.getElementById('goal-progress').value
+    };
+    
+    saveGoal(newGoal)
+        .then(() => {
+            goalForm.reset();
+            closeAllModals();
+            showNotification('Goal added successfully!', 'success');
+        })
+        .catch((error) => {
+            console.error('Error adding goal:', error);
+            showNotification('Error adding goal: ' + error.message, 'error');
+        });
+});
+
+dealForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // KËTU ËSHTË RREGULLIMI KYÇ - MOS E KONVERTO NË NUMËR!
+    const newDeal = {
+        eventId: document.getElementById('deal-event').value, // STRING, jo parseInt!
+        company: document.getElementById('deal-company').value,
+        contact: document.getElementById('deal-contact').value,
+        email: document.getElementById('deal-email').value,
+        phone: document.getElementById('deal-phone').value,
+        status: document.getElementById('deal-status').value,
+        notes: document.getElementById('deal-notes').value
+    };
+    
+    saveDeal(newDeal)
+        .then(() => {
+            dealForm.reset();
+            closeAllModals();
+            showNotification('Deal added successfully!', 'success');
+            
+            // Update CRM if we're on that page
+            const currentPage = document.querySelector('.page.active').id;
+            if (currentPage === 'crm-page') {
+                const selectedEventId = crmEventSelect.value;
+                if (selectedEventId === newDeal.eventId) {
+                    renderCRMTable(selectedEventId);
+                    updateCRMSummary(selectedEventId); // Përditëso summary për event specifik
+                }
+            }
+        })
+        .catch((error) => {
+            console.error('Error adding deal:', error);
+            showNotification('Error adding deal: ' + error.message, 'error');
+        });
+});
+
+// Rendering functions
+function renderEvents() {
+    if (events.length === 0) {
+        eventsContainer.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-calendar-plus"></i>
+                <h3>No Events Yet</h3>
+                <p>Click the "Add New Event" button to create your first event</p>
+            </div>
+        `;
+        return;
+    }
+    
+    eventsContainer.innerHTML = events.map(event => {
+        const statusClass = event.status === 'pending' ? 'pending' : 
+                           event.status === 'confirmed' ? 'confirmed' : 'completed';
+        
+        let formattedDate = 'No date';
+        if (event.date) {
+            // Check if date is a Firestore timestamp or a string
+            if (event.date.seconds) {
+                formattedDate = new Date(event.date.seconds * 1000).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            } else {
+                formattedDate = new Date(event.date).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            }
+        }
+        
+        // Count deals for this event - PËRDOR === PËR KRAHASIM STRING
+        const eventDeals = deals.filter(d => d.eventId === event.id);
+        const dealCount = eventDeals.length;
+        
+        return `
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">${event.title}</h3>
+                    <span class="status ${statusClass}">${event.status}</span>
+                </div>
+                <div class="card-details">
+                    <p><strong>Date:</strong> ${formattedDate}</p>
+                    <p><strong>Location:</strong> ${event.location}</p>
+                    <p>${event.description}</p>
+                    <div style="margin-top: 10px; padding: 8px; background-color: #f8f9fa; border-radius: 4px;">
+                        <p style="margin: 0; font-size: 0.85rem;">
+                            <strong>CRM:</strong> ${dealCount} deal${dealCount !== 1 ? 's' : ''}
+                        </p>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="card-actions">
+                        <button class="action-btn edit-btn" data-id="${event.id}">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="action-btn crm-btn" data-id="${event.id}">
+                            <i class="fas fa-table"></i> CRM
+                        </button>
+                        <button class="action-btn delete-btn" data-id="${event.id}">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                    <div class="card-date">
+                        <i class="far fa-calendar-alt"></i> ${formattedDate}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    // Add event listeners for edit and delete buttons
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const eventId = this.getAttribute('data-id');
+            editEvent(eventId);
+        });
+    });
+    
+    document.querySelectorAll('.crm-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const eventId = this.getAttribute('data-id');
+            // Switch to CRM page and select this event
+            document.querySelector('.nav-link[data-page="crm"]').click();
+            crmEventSelect.value = eventId;
+            crmEventSelect.dispatchEvent(new Event('change'));
+        });
+    });
+    
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const eventId = this.getAttribute('data-id');
+            if (confirm('Are you sure you want to delete this event? This will also delete all associated deals.')) {
+                // First delete associated deals, then delete the event
+                deleteDealsByEvent(eventId)
+                    .then(() => deleteEvent(eventId))
+                    .then(() => {
+                        showNotification('Event and associated deals deleted!', 'info');
+                    })
+                    .catch((error) => {
+                        console.error('Error deleting event:', error);
+                        showNotification('Error deleting event: ' + error.message, 'error');
+                    });
+            }
+        });
+    });
+}
+
+function renderSponsors() {
+    if (sponsors.length === 0) {
+        sponsorsContainer.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-handshake"></i>
+                <h3>No Sponsors Yet</h3>
+                <p>Click the "Add New Sponsor" button to add your first sponsor</p>
+            </div>
+        `;
+        return;
+    }
+    
+    sponsorsContainer.innerHTML = sponsors.map(sponsor => {
+        const levelClass = `level-${sponsor.level}`;
+        const levelText = sponsor.level.charAt(0).toUpperCase() + sponsor.level.slice(1);
+        
+        return `
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">${sponsor.name}</h3>
+                    <span class="sponsor-level ${levelClass}">${levelText}</span>
+                </div>
+                <div class="card-details">
+                    <p><strong>Email:</strong> ${sponsor.email}</p>
+                    <p><strong>Phone:</strong> ${sponsor.phone || 'Not provided'}</p>
+                    ${sponsor.notes ? `<p><strong>Notes:</strong> ${sponsor.notes}</p>` : ''}
+                </div>
+                <div class="card-footer">
+                    <div class="card-actions">
+                        <button class="action-btn email-btn" data-email="${sponsor.email}">
+                            <i class="fas fa-envelope"></i> Email
+                        </button>
+                        <button class="action-btn delete-btn" data-id="${sponsor.id}">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                    <div class="card-date">
+                        <i class="fas fa-star"></i> ${levelText} Sponsor
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    // Add event listeners for buttons
+    document.querySelectorAll('.email-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const email = this.getAttribute('data-email');
+            window.location.href = `mailto:${email}`;
+        });
+    });
+    
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const sponsorId = this.getAttribute('data-id');
+            if (confirm('Are you sure you want to delete this sponsor?')) {
+                deleteSponsor(sponsorId)
+                    .then(() => {
+                        showNotification('Sponsor deleted successfully!', 'info');
+                    })
+                    .catch((error) => {
+                        console.error('Error deleting sponsor:', error);
+                        showNotification('Error deleting sponsor: ' + error.message, 'error');
+                    });
+            }
+        });
+    });
+}
+
+function renderGoals() {
+    if (goals.length === 0) {
+        goalsContainer.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-bullseye"></i>
+                <h3>No Goals Yet</h3>
+                <p>Click the "Add New Goal" button to set your first goal</p>
+            </div>
+        `;
+        return;
+    }
+    
+    goalsContainer.innerHTML = goals.map(goal => {
+        let formattedDate = 'No deadline';
+        if (goal.deadline) {
+            // Check if deadline is a Firestore timestamp or a string
+            if (goal.deadline.seconds) {
+                formattedDate = new Date(goal.deadline.seconds * 1000).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            } else {
+                formattedDate = new Date(goal.deadline).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            }
+        }
+        
+        // Determine priority class
+        let priorityClass = 'priority-medium';
+        if (goal.priority === 'high') priorityClass = 'priority-high';
+        if (goal.priority === 'low') priorityClass = 'priority-low';
+        
+        return `
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">${goal.title}</h3>
+                    <div class="${priorityClass}">
+                        ${goal.priority.charAt(0).toUpperCase() + goal.priority.slice(1)} Priority
+                    </div>
+                </div>
+                <div class="card-details">
+                    <p><strong>Deadline:</strong> ${formattedDate}</p>
+                    <p><strong>Progress:</strong> ${goal.progress}%</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${goal.progress}%"></div>
+                    </div>
+                    <p>${goal.description}</p>
+                </div>
+                <div class="card-footer">
+                    <div class="card-actions">
+                        <button class="action-btn update-btn" data-id="${goal.id}">
+                            <i class="fas fa-sync-alt"></i> Update
+                        </button>
+                        <button class="action-btn delete-btn" data-id="${goal.id}">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                    <div class="card-date">
+                        Due: ${formattedDate}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    // Add event listeners for buttons
+    document.querySelectorAll('.update-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const goalId = this.getAttribute('data-id');
+            updateGoalProgress(goalId);
+        });
+    });
+    
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const goalId = this.getAttribute('data-id');
+            if (confirm('Are you sure you want to delete this goal?')) {
+                deleteGoal(goalId)
+                    .then(() => {
+                        showNotification('Goal deleted successfully!', 'info');
+                    })
+                    .catch((error) => {
+                        console.error('Error deleting goal:', error);
+                        showNotification('Error deleting goal: ' + error.message, 'error');
+                    });
+            }
+        });
+    });
+}
+
+// CRM Table rendering
+function renderCRMTable(eventId) {
+    // PËRDOR === PËR KRAHASIM STRING
+    const eventDeals = deals.filter(deal => deal.eventId === eventId);
+    
+    if (eventDeals.length === 0) {
+        crmTableContainer.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-table"></i>
+                <h3>No Deals Yet</h3>
+                <p>Click the "Add New Deal" button to add deals for this event</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const tableHTML = `
+        <table class="crm-table">
+            <thead>
+                <tr>
+                    <th>Company</th>
+                    <th>Contact</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Status</th>
+                    <th>Last Updated</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${eventDeals.map(deal => {
+                    const statusClass = `status-${deal.status}`;
+                    const statusText = deal.status.charAt(0).toUpperCase() + deal.status.slice(1);
+                    let formattedDate = 'N/A';
+                    
+                    if (deal.lastUpdated && deal.lastUpdated.seconds) {
+                        formattedDate = new Date(deal.lastUpdated.seconds * 1000).toLocaleDateString('en-US');
+                    } else if (deal.createdAt && deal.createdAt.seconds) {
+                        formattedDate = new Date(deal.createdAt.seconds * 1000).toLocaleDateString('en-US');
+                    }
+                    
+                    return `
+                        <tr data-id="${deal.id}">
+                            <td><input type="text" value="${deal.company}" class="editable company"></td>
+                            <td><input type="text" value="${deal.contact || ''}" class="editable contact"></td>
+                            <td><input type="email" value="${deal.email || ''}" class="editable email"></td>
+                            <td><input type="tel" value="${deal.phone || ''}" class="editable phone"></td>
+                            <td>
+                                <select class="editable status">
+                                    <option value="new" ${deal.status === 'new' ? 'selected' : ''}>New</option>
+                                    <option value="negotiation" ${deal.status === 'negotiation' ? 'selected' : ''}>Negotiation</option>
+                                    <option value="won" ${deal.status === 'won' ? 'selected' : ''}>Won</option>
+                                    <option value="lost" ${deal.status === 'lost' ? 'selected' : ''}>Lost</option>
+                                    <option value="postponed" ${deal.status === 'postponed' ? 'selected' : ''}>Postponed</option>
+                                </select>
+                            </td>
+                            <td>${formattedDate}</td>
+                            <td>
+                                <button class="table-action-btn save" title="Save changes">
+                                    <i class="fas fa-save"></i>
+                                </button>
+                                <button class="table-action-btn delete" title="Delete deal">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('')}
+            </tbody>
+        </table>
+    `;
+    
+    crmTableContainer.innerHTML = tableHTML;
+    
+    // Add event listeners for inline editing
+    crmTableContainer.querySelectorAll('.save').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const row = this.closest('tr');
+            const dealId = row.getAttribute('data-id');
+            saveDealChanges(dealId, row);
+        });
+    });
+    
+    crmTableContainer.querySelectorAll('.delete').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const row = this.closest('tr');
+            const dealId = row.getAttribute('data-id');
+            if (confirm('Are you sure you want to delete this deal?')) {
+                deleteDeal(dealId)
+                    .then(() => {
+                        showNotification('Deal deleted!', 'info');
+                        // Përditëso summary pas fshirjes
+                        if (currentCRMEventId) {
+                            updateCRMSummary(currentCRMEventId);
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('Error deleting deal:', error);
+                        showNotification('Error deleting deal: ' + error.message, 'error');
+                    });
+            }
+        });
+    });
+}
+
+// Edit event function
+function editEvent(eventId) {
+    const event = events.find(e => e.id === eventId);
+    if (!event) return;
+    
+    // Populate the form with event data
+    document.getElementById('event-title').value = event.title;
+    
+    // Convert Firestore timestamp to date string
+    if (event.date) {
+        let dateValue = '';
+        if (event.date.seconds) {
+            const date = new Date(event.date.seconds * 1000);
+            dateValue = date.toISOString().split('T')[0];
+        } else {
+            dateValue = event.date;
+        }
+        document.getElementById('event-date').value = dateValue;
+    } else {
+        document.getElementById('event-date').value = '';
+    }
+    
+    document.getElementById('event-location').value = event.location;
+    document.getElementById('event-description').value = event.description;
+    document.getElementById('event-status').value = event.status;
+    
+    // Change form to update mode
+    const form = document.getElementById('event-form');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.textContent = 'Update Event';
+    
+    // Remove old submit listener
+    const newForm = form.cloneNode(true);
+    form.parentNode.replaceChild(newForm, form);
+    
+    // Add new submit listener for update
+    newForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Update event data
+        const updatedEvent = {
+            title: document.getElementById('event-title').value,
+            date: document.getElementById('event-date').value,
+            location: document.getElementById('event-location').value,
+            description: document.getElementById('event-description').value,
+            status: document.getElementById('event-status').value
         };
         
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        
-        // Global variables
-        let currentUser = null;
-        let events = [];
-        let sponsors = [];
-        let goals = [];
-        let deals = [];
-        
-        // DOM elements
-        const loginScreen = document.getElementById('login-screen');
-        const appContainer = document.getElementById('app-container');
-        const loginEmail = document.getElementById('login-email');
-        const loginPassword = document.getElementById('login-password');
-        const loginBtn = document.getElementById('login-btn');
-        const logoutBtn = document.getElementById('logout-btn');
-        const registerBox = document.getElementById('register-box');
-        const showRegister = document.getElementById('show-register');
-        const showLogin = document.getElementById('show-login');
-        const registerEmail = document.getElementById('register-email');
-        const registerPassword = document.getElementById('register-password');
-        const registerName = document.getElementById('register-name');
-        const registerBtn = document.getElementById('register-btn');
-        const userEmailElement = document.getElementById('user-email');
-        
-        // App DOM elements
-        const navLinks = document.querySelectorAll('.nav-link');
-        const pages = document.querySelectorAll('.page');
-        const addEventBtn = document.getElementById('add-event-btn');
-        const addSponsorBtn = document.getElementById('add-sponsor-btn');
-        const addGoalBtn = document.getElementById('add-goal-btn');
-        const addDealBtn = document.getElementById('add-deal-btn');
-        const exportCsvBtn = document.getElementById('export-csv-btn');
-        const eventModal = document.getElementById('event-modal');
-        const sponsorModal = document.getElementById('sponsor-modal');
-        const goalModal = document.getElementById('goal-modal');
-        const dealModal = document.getElementById('deal-modal');
-        const closeModalButtons = document.querySelectorAll('.close-modal');
-        const eventForm = document.getElementById('event-form');
-        const sponsorForm = document.getElementById('sponsor-form');
-        const goalForm = document.getElementById('goal-form');
-        const dealForm = document.getElementById('deal-form');
-        const eventsContainer = document.getElementById('events-container');
-        const sponsorsContainer = document.getElementById('sponsors-container');
-        const goalsContainer = document.getElementById('goals-container');
-        const crmEventSelect = document.getElementById('crm-event-select');
-        const crmTableContainer = document.getElementById('crm-table-container');
-        const crmEventTitle = document.getElementById('crm-event-title');
-        const progressSlider = document.getElementById('goal-progress');
-        const progressValue = document.getElementById('progress-value');
-        const dealEventSelect = document.getElementById('deal-event');
-        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-        const navMenu = document.getElementById('nav-menu');
-
-        // Initialize the app
-        document.addEventListener('DOMContentLoaded', function() {
-            // Setup progress slider display
-            if (progressSlider && progressValue) {
-                progressSlider.addEventListener('input', function() {
-                    progressValue.textContent = this.value + '%';
-                });
-            }
-            
-            // Setup mobile menu toggle
-            if (mobileMenuToggle) {
-                mobileMenuToggle.addEventListener('click', function() {
-                    navMenu.classList.toggle('active');
-                });
-            }
-            
-            // Close mobile menu when clicking a link
-            navLinks.forEach(link => {
-                link.addEventListener('click', function() {
-                    if (window.innerWidth <= 768) {
-                        navMenu.classList.remove('active');
-                    }
-                });
-            });
-            
-            // Check if user is already logged in
-            auth.onAuthStateChanged((user) => {
-                if (user) {
-                    // User is signed in
-                    currentUser = user;
-                    showApp();
-                    loadAllData();
-                } else {
-                    // No user is signed in
-                    showLoginScreen();
-                }
-            });
-            
-            // Setup login/register toggles
-            showRegister.addEventListener('click', function(e) {
-                e.preventDefault();
-                registerBox.style.display = 'block';
-            });
-            
-            showLogin.addEventListener('click', function(e) {
-                e.preventDefault();
-                registerBox.style.display = 'none';
-            });
-        });
-
-        // Show login screen
-        function showLoginScreen() {
-            loginScreen.style.display = 'block';
-            appContainer.style.display = 'none';
-        }
-
-        // Show app
-        function showApp() {
-            loginScreen.style.display = 'none';
-            appContainer.style.display = 'block';
-            userEmailElement.textContent = `Logged in as: ${currentUser.email}`;
-        }
-
-        // Login function
-        loginBtn.addEventListener('click', function() {
-            const email = loginEmail.value;
-            const password = loginPassword.value;
-            
-            if (!email || !password) {
-                showNotification('Please enter email and password', 'warning');
-                return;
-            }
-            
-            auth.signInWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    // Signed in successfully
-                    showNotification('Login successful!', 'success');
-                    loginEmail.value = '';
-                    loginPassword.value = '';
-                })
-                .catch((error) => {
-                    console.error('Login error:', error);
-                    showNotification('Login failed: ' + error.message, 'error');
-                });
-        });
-
-        // Register function
-        registerBtn.addEventListener('click', function() {
-            const email = registerEmail.value;
-            const password = registerPassword.value;
-            const name = registerName.value;
-            
-            if (!email || !password || !name) {
-                showNotification('Please fill all fields', 'warning');
-                return;
-            }
-            
-            auth.createUserWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    // User created successfully
-                    const user = userCredential.user;
-                    
-                    // Update user profile with name
-                    return user.updateProfile({
-                        displayName: name
-                    });
-                })
-                .then(() => {
-                    showNotification('Registration successful!', 'success');
-                    registerEmail.value = '';
-                    registerPassword.value = '';
-                    registerName.value = '';
-                    registerBox.style.display = 'none';
-                })
-                .catch((error) => {
-                    console.error('Registration error:', error);
-                    showNotification('Registration failed: ' + error.message, 'error');
-                });
-        });
-
-        // Logout function
-        logoutBtn.addEventListener('click', function() {
-            auth.signOut()
-                .then(() => {
-                    showNotification('Logged out successfully', 'info');
-                })
-                .catch((error) => {
-                    console.error('Logout error:', error);
-                    showNotification('Logout failed: ' + error.message, 'error');
-                });
-        });
-
-        // ==================== FIRESTORE FUNCTIONS ====================
-
-        // Load all data from Firestore
-        function loadAllData() {
-            loadEvents();
-            loadSponsors();
-            loadGoals();
-            loadDeals();
-        }
-
-        // Load events from Firestore
-        function loadEvents() {
-            db.collection('events').orderBy('createdAt', 'desc').onSnapshot((snapshot) => {
-                events = [];
-                snapshot.forEach((doc) => {
-                    events.push({
-                        id: doc.id,
-                        ...doc.data()
-                    });
-                });
-                renderEvents();
-                updateEventSelectors();
-            }, (error) => {
-                console.error('Error loading events:', error);
-                eventsContainer.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <h3>Error Loading Events</h3>
-                        <p>Could not load events from database</p>
-                    </div>
-                `;
-            });
-        }
-
-        // Load sponsors from Firestore
-        function loadSponsors() {
-            db.collection('sponsors').orderBy('name').onSnapshot((snapshot) => {
-                sponsors = [];
-                snapshot.forEach((doc) => {
-                    sponsors.push({
-                        id: doc.id,
-                        ...doc.data()
-                    });
-                });
-                renderSponsors();
-            }, (error) => {
-                console.error('Error loading sponsors:', error);
-                sponsorsContainer.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <h3>Error Loading Sponsors</h3>
-                        <p>Could not load sponsors from database</p>
-                    </div>
-                `;
-            });
-        }
-
-        // Load goals from Firestore
-        function loadGoals() {
-            db.collection('goals').orderBy('deadline').onSnapshot((snapshot) => {
-                goals = [];
-                snapshot.forEach((doc) => {
-                    goals.push({
-                        id: doc.id,
-                        ...doc.data()
-                    });
-                });
-                renderGoals();
-            }, (error) => {
-                console.error('Error loading goals:', error);
-                goalsContainer.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <h3>Error Loading Goals</h3>
-                        <p>Could not load goals from database</p>
-                    </div>
-                `;
-            });
-        }
-
-        // Load deals from Firestore
-        function loadDeals() {
-            db.collection('deals').onSnapshot((snapshot) => {
-                deals = [];
-                snapshot.forEach((doc) => {
-                    deals.push({
-                        id: doc.id,
-                        ...doc.data()
-                    });
-                });
-                updateCRMSummary();
-                
-                // Update CRM table if we're on that page
-                const currentPage = document.querySelector('.page.active').id;
-                if (currentPage === 'crm-page' && crmEventSelect.value) {
-                    renderCRMTable(crmEventSelect.value);
-                }
-            }, (error) => {
-                console.error('Error loading deals:', error);
-            });
-        }
-
-        // Save event to Firestore
-        function saveEvent(eventData) {
-            return db.collection('events').add({
-                ...eventData,
-                createdBy: currentUser.uid,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        }
-
-        // Save sponsor to Firestore
-        function saveSponsor(sponsorData) {
-            return db.collection('sponsors').add({
-                ...sponsorData,
-                createdBy: currentUser.uid,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        }
-
-        // Save goal to Firestore
-        function saveGoal(goalData) {
-            return db.collection('goals').add({
-                ...goalData,
-                createdBy: currentUser.uid,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        }
-
-        // Save deal to Firestore
-        function saveDeal(dealData) {
-            return db.collection('deals').add({
-                ...dealData,
-                createdBy: currentUser.uid,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        }
-
-        // Update event in Firestore
-        function updateEvent(eventId, eventData) {
-            return db.collection('events').doc(eventId).update({
-                ...eventData,
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        }
-
-        // Update deal in Firestore
-        function updateDeal(dealId, dealData) {
-            return db.collection('deals').doc(dealId).update({
-                ...dealData,
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        }
-
-        // Update goal in Firestore
-        function updateGoal(goalId, goalData) {
-            return db.collection('goals').doc(goalId).update({
-                ...goalData,
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        }
-
-        // Delete event from Firestore
-        function deleteEvent(eventId) {
-            return db.collection('events').doc(eventId).delete();
-        }
-
-        // Delete sponsor from Firestore
-        function deleteSponsor(sponsorId) {
-            return db.collection('sponsors').doc(sponsorId).delete();
-        }
-
-        // Delete goal from Firestore
-        function deleteGoal(goalId) {
-            return db.collection('goals').doc(goalId).delete();
-        }
-
-        // Delete deal from Firestore
-        function deleteDeal(dealId) {
-            return db.collection('deals').doc(dealId).delete();
-        }
-
-        // Delete deals by event ID
-        function deleteDealsByEvent(eventId) {
-            const batch = db.batch();
-            const eventDeals = deals.filter(deal => deal.eventId === eventId);
-            
-            eventDeals.forEach(deal => {
-                const dealRef = db.collection('deals').doc(deal.id);
-                batch.delete(dealRef);
-            });
-            
-            return batch.commit();
-        }
-
-        // ==================== APP FUNCTIONALITY ====================
-
-        // Navigation handling
-        navLinks.forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                const targetPage = this.getAttribute('data-page');
-                
-                // Update active nav link
-                navLinks.forEach(link => link.classList.remove('active'));
-                this.classList.add('active');
-                
-                // Show target page
-                pages.forEach(page => {
-                    page.classList.remove('active');
-                    if (page.id === `${targetPage}-page`) {
-                        page.classList.add('active');
-                    }
-                });
-                
-                // If CRM page, update the table
-                if (targetPage === 'crm') {
-                    updateCRMSummary();
-                    const selectedEventId = crmEventSelect.value;
-                    if (selectedEventId) {
-                        renderCRMTable(selectedEventId);
-                    }
-                }
-            });
-        });
-
-        // Modal handling
-        addEventBtn.addEventListener('click', () => openModal(eventModal));
-        addSponsorBtn.addEventListener('click', () => openModal(sponsorModal));
-        addGoalBtn.addEventListener('click', () => openModal(goalModal));
-        addDealBtn.addEventListener('click', () => {
-            // Populate event dropdown in deal modal
-            populateDealEventSelect();
-            openModal(dealModal);
-        });
-        exportCsvBtn.addEventListener('click', exportDealsToCSV);
-
-        closeModalButtons.forEach(button => {
-            button.addEventListener('click', () => {
+        updateEvent(eventId, updatedEvent)
+            .then(() => {
+                newForm.reset();
                 closeAllModals();
+                showNotification('Event updated successfully!', 'success');
+            })
+            .catch((error) => {
+                console.error('Error updating event:', error);
+                showNotification('Error updating event: ' + error.message, 'error');
             });
+    });
+    
+    openModal(eventModal);
+}
+
+// Update goal progress function
+function updateGoalProgress(goalId) {
+    const goal = goals.find(g => g.id === goalId);
+    if (!goal) return;
+    
+    const newProgress = prompt('Enter new progress percentage (0-100):', goal.progress);
+    if (newProgress !== null && !isNaN(newProgress) && newProgress >= 0 && newProgress <= 100) {
+        updateGoal(goalId, { progress: parseInt(newProgress) })
+            .then(() => {
+                showNotification('Goal progress updated!', 'success');
+            })
+            .catch((error) => {
+                console.error('Error updating goal:', error);
+                showNotification('Error updating goal: ' + error.message, 'error');
+            });
+    }
+}
+
+// Save deal changes from inline editing - MODIFIKUAR
+function saveDealChanges(dealId, row) {
+    const updatedDeal = {
+        company: row.querySelector('.company').value,
+        contact: row.querySelector('.contact').value,
+        email: row.querySelector('.email').value,
+        phone: row.querySelector('.phone').value,
+        status: row.querySelector('.status').value
+    };
+    
+    updateDeal(dealId, updatedDeal)
+        .then(() => {
+            showNotification('Deal updated successfully!', 'success');
+            
+            // Update CRM summary for current event
+            if (currentCRMEventId) {
+                updateCRMSummary(currentCRMEventId);
+            }
+        })
+        .catch((error) => {
+            console.error('Error updating deal:', error);
+            showNotification('Error updating deal: ' + error.message, 'error');
         });
+}
 
-        // Close modal when clicking outside
-        window.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal')) {
-                closeAllModals();
-            }
-        });
-
-        function openModal(modal) {
-            closeAllModals();
-            modal.classList.add('active');
-            
-            // Set today's date as default for date inputs
-            const today = new Date().toISOString().split('T')[0];
-            if (document.getElementById('event-date')) {
-                document.getElementById('event-date').value = today;
-            }
-            if (document.getElementById('goal-deadline')) {
-                document.getElementById('goal-deadline').value = today;
-            }
-        }
-
-        function closeAllModals() {
-            document.querySelectorAll('.modal').forEach(modal => {
-                modal.classList.remove('active');
-            });
-        }
-
-        // Event selector change
-        crmEventSelect.addEventListener('change', function() {
-            const eventId = this.value;
-            if (eventId) {
-                renderCRMTable(eventId);
-                
-                // Update subtitle with event name
-                const selectedEvent = events.find(e => e.id === eventId);
-                if (selectedEvent) {
-                    crmEventTitle.textContent = `Deals for: ${selectedEvent.title}`;
-                }
-            } else {
-                crmTableContainer.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-table"></i>
-                        <h3>No Event Selected</h3>
-                        <p>Select an event from the dropdown above to view and manage deals</p>
-                    </div>
-                `;
-                crmEventTitle.textContent = 'Select an event to view and manage deals';
-            }
-        });
-
-        // Form submissions
-        eventForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const newEvent = {
-                title: document.getElementById('event-title').value,
-                date: document.getElementById('event-date').value,
-                location: document.getElementById('event-location').value,
-                description: document.getElementById('event-description').value,
-                status: document.getElementById('event-status').value
-            };
-            
-            saveEvent(newEvent)
-                .then(() => {
-                    eventForm.reset();
-                    closeAllModals();
-                    showNotification('Event added successfully!', 'success');
-                })
-                .catch((error) => {
-                    console.error('Error adding event:', error);
-                    showNotification('Error adding event: ' + error.message, 'error');
-                });
-        });
-
-        sponsorForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const newSponsor = {
-                name: document.getElementById('sponsor-name').value,
-                email: document.getElementById('sponsor-email').value,
-                phone: document.getElementById('sponsor-phone').value,
-                level: document.getElementById('sponsor-level').value,
-                notes: document.getElementById('sponsor-notes').value
-            };
-            
-            saveSponsor(newSponsor)
-                .then(() => {
-                    sponsorForm.reset();
-                    closeAllModals();
-                    showNotification('Sponsor added successfully!', 'success');
-                })
-                .catch((error) => {
-                    console.error('Error adding sponsor:', error);
-                    showNotification('Error adding sponsor: ' + error.message, 'error');
-                });
-        });
-
-        goalForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const newGoal = {
-                title: document.getElementById('goal-title').value,
-                deadline: document.getElementById('goal-deadline').value,
-                priority: document.getElementById('goal-priority').value,
-                description: document.getElementById('goal-description').value,
-                progress: document.getElementById('goal-progress').value
-            };
-            
-            saveGoal(newGoal)
-                .then(() => {
-                    goalForm.reset();
-                    closeAllModals();
-                    showNotification('Goal added successfully!', 'success');
-                })
-                .catch((error) => {
-                    console.error('Error adding goal:', error);
-                    showNotification('Error adding goal: ' + error.message, 'error');
-                });
-        });
-
-        dealForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // KËTU ËSHTË RREGULLIMI KYÇ - MOS E KONVERTO NË NUMËR!
-            const newDeal = {
-                eventId: document.getElementById('deal-event').value, // STRING, jo parseInt!
-                company: document.getElementById('deal-company').value,
-                contact: document.getElementById('deal-contact').value,
-                email: document.getElementById('deal-email').value,
-                phone: document.getElementById('deal-phone').value,
-                status: document.getElementById('deal-status').value,
-                notes: document.getElementById('deal-notes').value
-            };
-            
-            saveDeal(newDeal)
-                .then(() => {
-                    dealForm.reset();
-                    closeAllModals();
-                    showNotification('Deal added successfully!', 'success');
-                    
-                    // Update CRM if we're on that page
-                    const currentPage = document.querySelector('.page.active').id;
-                    if (currentPage === 'crm-page') {
-                        const selectedEventId = crmEventSelect.value;
-                        if (selectedEventId === newDeal.eventId) {
-                            renderCRMTable(selectedEventId);
-                        }
-                    }
-                })
-                .catch((error) => {
-                    console.error('Error adding deal:', error);
-                    showNotification('Error adding deal: ' + error.message, 'error');
-                });
-        });
-
-        // Rendering functions
-        function renderEvents() {
-            if (events.length === 0) {
-                eventsContainer.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-calendar-plus"></i>
-                        <h3>No Events Yet</h3>
-                        <p>Click the "Add New Event" button to create your first event</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            eventsContainer.innerHTML = events.map(event => {
-                const statusClass = event.status === 'pending' ? 'pending' : 
-                                   event.status === 'confirmed' ? 'confirmed' : 'completed';
-                
-                let formattedDate = 'No date';
-                if (event.date) {
-                    // Check if date is a Firestore timestamp or a string
-                    if (event.date.seconds) {
-                        formattedDate = new Date(event.date.seconds * 1000).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        });
-                    } else {
-                        formattedDate = new Date(event.date).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        });
-                    }
-                }
-                
-                // Count deals for this event - PËRDOR === PËR KRAHASIM STRING
-                const eventDeals = deals.filter(d => d.eventId === event.id);
-                const dealCount = eventDeals.length;
-                
-                return `
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">${event.title}</h3>
-                            <span class="status ${statusClass}">${event.status}</span>
-                        </div>
-                        <div class="card-details">
-                            <p><strong>Date:</strong> ${formattedDate}</p>
-                            <p><strong>Location:</strong> ${event.location}</p>
-                            <p>${event.description}</p>
-                            <div style="margin-top: 10px; padding: 8px; background-color: #f8f9fa; border-radius: 4px;">
-                                <p style="margin: 0; font-size: 0.85rem;">
-                                    <strong>CRM:</strong> ${dealCount} deal${dealCount !== 1 ? 's' : ''}
-                                </p>
-                            </div>
-                        </div>
-                        <div class="card-footer">
-                            <div class="card-actions">
-                                <button class="action-btn edit-btn" data-id="${event.id}">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button class="action-btn crm-btn" data-id="${event.id}">
-                                    <i class="fas fa-table"></i> CRM
-                                </button>
-                                <button class="action-btn delete-btn" data-id="${event.id}">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </div>
-                            <div class="card-date">
-                                <i class="far fa-calendar-alt"></i> ${formattedDate}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            // Add event listeners for edit and delete buttons
-            document.querySelectorAll('.edit-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const eventId = this.getAttribute('data-id');
-                    editEvent(eventId);
-                });
-            });
-            
-            document.querySelectorAll('.crm-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const eventId = this.getAttribute('data-id');
-                    // Switch to CRM page and select this event
-                    document.querySelector('.nav-link[data-page="crm"]').click();
-                    crmEventSelect.value = eventId;
-                    crmEventSelect.dispatchEvent(new Event('change'));
-                });
-            });
-            
-            document.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const eventId = this.getAttribute('data-id');
-                    if (confirm('Are you sure you want to delete this event? This will also delete all associated deals.')) {
-                        // First delete associated deals, then delete the event
-                        deleteDealsByEvent(eventId)
-                            .then(() => deleteEvent(eventId))
-                            .then(() => {
-                                showNotification('Event and associated deals deleted!', 'info');
-                            })
-                            .catch((error) => {
-                                console.error('Error deleting event:', error);
-                                showNotification('Error deleting event: ' + error.message, 'error');
-                            });
-                    }
-                });
-            });
-        }
-
-        function renderSponsors() {
-            if (sponsors.length === 0) {
-                sponsorsContainer.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-handshake"></i>
-                        <h3>No Sponsors Yet</h3>
-                        <p>Click the "Add New Sponsor" button to add your first sponsor</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            sponsorsContainer.innerHTML = sponsors.map(sponsor => {
-                const levelClass = `level-${sponsor.level}`;
-                const levelText = sponsor.level.charAt(0).toUpperCase() + sponsor.level.slice(1);
-                
-                return `
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">${sponsor.name}</h3>
-                            <span class="sponsor-level ${levelClass}">${levelText}</span>
-                        </div>
-                        <div class="card-details">
-                            <p><strong>Email:</strong> ${sponsor.email}</p>
-                            <p><strong>Phone:</strong> ${sponsor.phone || 'Not provided'}</p>
-                            ${sponsor.notes ? `<p><strong>Notes:</strong> ${sponsor.notes}</p>` : ''}
-                        </div>
-                        <div class="card-footer">
-                            <div class="card-actions">
-                                <button class="action-btn email-btn" data-email="${sponsor.email}">
-                                    <i class="fas fa-envelope"></i> Email
-                                </button>
-                                <button class="action-btn delete-btn" data-id="${sponsor.id}">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </div>
-                            <div class="card-date">
-                                <i class="fas fa-star"></i> ${levelText} Sponsor
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            // Add event listeners for buttons
-            document.querySelectorAll('.email-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const email = this.getAttribute('data-email');
-                    window.location.href = `mailto:${email}`;
-                });
-            });
-            
-            document.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const sponsorId = this.getAttribute('data-id');
-                    if (confirm('Are you sure you want to delete this sponsor?')) {
-                        deleteSponsor(sponsorId)
-                            .then(() => {
-                                showNotification('Sponsor deleted successfully!', 'info');
-                            })
-                            .catch((error) => {
-                                console.error('Error deleting sponsor:', error);
-                                showNotification('Error deleting sponsor: ' + error.message, 'error');
-                            });
-                    }
-                });
-            });
-        }
-
-        function renderGoals() {
-            if (goals.length === 0) {
-                goalsContainer.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-bullseye"></i>
-                        <h3>No Goals Yet</h3>
-                        <p>Click the "Add New Goal" button to set your first goal</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            goalsContainer.innerHTML = goals.map(goal => {
-                let formattedDate = 'No deadline';
-                if (goal.deadline) {
-                    // Check if deadline is a Firestore timestamp or a string
-                    if (goal.deadline.seconds) {
-                        formattedDate = new Date(goal.deadline.seconds * 1000).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        });
-                    } else {
-                        formattedDate = new Date(goal.deadline).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        });
-                    }
-                }
-                
-                // Determine priority class
-                let priorityClass = 'priority-medium';
-                if (goal.priority === 'high') priorityClass = 'priority-high';
-                if (goal.priority === 'low') priorityClass = 'priority-low';
-                
-                return `
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">${goal.title}</h3>
-                            <div class="${priorityClass}">
-                                ${goal.priority.charAt(0).toUpperCase() + goal.priority.slice(1)} Priority
-                            </div>
-                        </div>
-                        <div class="card-details">
-                            <p><strong>Deadline:</strong> ${formattedDate}</p>
-                            <p><strong>Progress:</strong> ${goal.progress}%</p>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: ${goal.progress}%"></div>
-                            </div>
-                            <p>${goal.description}</p>
-                        </div>
-                        <div class="card-footer">
-                            <div class="card-actions">
-                                <button class="action-btn update-btn" data-id="${goal.id}">
-                                    <i class="fas fa-sync-alt"></i> Update
-                                </button>
-                                <button class="action-btn delete-btn" data-id="${goal.id}">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </div>
-                            <div class="card-date">
-                                Due: ${formattedDate}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            // Add event listeners for buttons
-            document.querySelectorAll('.update-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const goalId = this.getAttribute('data-id');
-                    updateGoalProgress(goalId);
-                });
-            });
-            
-            document.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const goalId = this.getAttribute('data-id');
-                    if (confirm('Are you sure you want to delete this goal?')) {
-                        deleteGoal(goalId)
-                            .then(() => {
-                                showNotification('Goal deleted successfully!', 'info');
-                            })
-                            .catch((error) => {
-                                console.error('Error deleting goal:', error);
-                                showNotification('Error deleting goal: ' + error.message, 'error');
-                            });
-                    }
-                });
-            });
-        }
-
-        // CRM Table rendering
-        function renderCRMTable(eventId) {
-            // PËRDOR === PËR KRAHASIM STRING
-            const eventDeals = deals.filter(deal => deal.eventId === eventId);
-            
-            if (eventDeals.length === 0) {
-                crmTableContainer.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-table"></i>
-                        <h3>No Deals Yet</h3>
-                        <p>Click the "Add New Deal" button to add deals for this event</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            const tableHTML = `
-                <table class="crm-table">
-                    <thead>
-                        <tr>
-                            <th>Company</th>
-                            <th>Contact</th>
-                            <th>Email</th>
-                            <th>Phone</th>
-                            <th>Status</th>
-                            <th>Last Updated</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${eventDeals.map(deal => {
-                            const statusClass = `status-${deal.status}`;
-                            const statusText = deal.status.charAt(0).toUpperCase() + deal.status.slice(1);
-                            let formattedDate = 'N/A';
-                            
-                            if (deal.lastUpdated && deal.lastUpdated.seconds) {
-                                formattedDate = new Date(deal.lastUpdated.seconds * 1000).toLocaleDateString('en-US');
-                            } else if (deal.createdAt && deal.createdAt.seconds) {
-                                formattedDate = new Date(deal.createdAt.seconds * 1000).toLocaleDateString('en-US');
-                            }
-                            
-                            return `
-                                <tr data-id="${deal.id}">
-                                    <td><input type="text" value="${deal.company}" class="editable company"></td>
-                                    <td><input type="text" value="${deal.contact || ''}" class="editable contact"></td>
-                                    <td><input type="email" value="${deal.email || ''}" class="editable email"></td>
-                                    <td><input type="tel" value="${deal.phone || ''}" class="editable phone"></td>
-                                    <td>
-                                        <select class="editable status">
-                                            <option value="new" ${deal.status === 'new' ? 'selected' : ''}>New</option>
-                                            <option value="negotiation" ${deal.status === 'negotiation' ? 'selected' : ''}>Negotiation</option>
-                                            <option value="won" ${deal.status === 'won' ? 'selected' : ''}>Won</option>
-                                            <option value="lost" ${deal.status === 'lost' ? 'selected' : ''}>Lost</option>
-                                            <option value="postponed" ${deal.status === 'postponed' ? 'selected' : ''}>Postponed</option>
-                                        </select>
-                                    </td>
-                                    <td>${formattedDate}</td>
-                                    <td>
-                                        <button class="table-action-btn save" title="Save changes">
-                                            <i class="fas fa-save"></i>
-                                        </button>
-                                        <button class="table-action-btn delete" title="Delete deal">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            `;
-                        }).join('')}
-                    </tbody>
-                </table>
-            `;
-            
-            crmTableContainer.innerHTML = tableHTML;
-            
-            // Add event listeners for inline editing
-            crmTableContainer.querySelectorAll('.save').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const row = this.closest('tr');
-                    const dealId = row.getAttribute('data-id');
-                    saveDealChanges(dealId, row);
-                });
-            });
-            
-            crmTableContainer.querySelectorAll('.delete').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const row = this.closest('tr');
-                    const dealId = row.getAttribute('data-id');
-                    if (confirm('Are you sure you want to delete this deal?')) {
-                        deleteDeal(dealId)
-                            .then(() => {
-                                showNotification('Deal deleted!', 'info');
-                            })
-                            .catch((error) => {
-                                console.error('Error deleting deal:', error);
-                                showNotification('Error deleting deal: ' + error.message, 'error');
-                            });
-                    }
-                });
-            });
-        }
-
-        // Edit event function
-        function editEvent(eventId) {
-            const event = events.find(e => e.id === eventId);
-            if (!event) return;
-            
-            // Populate the form with event data
-            document.getElementById('event-title').value = event.title;
-            
-            // Convert Firestore timestamp to date string
+// Update event selectors
+function updateEventSelectors() {
+    // Update CRM event selector
+    crmEventSelect.innerHTML = '<option value="">-- Select an Event --</option>' +
+        events.map(event => {
+            let dateStr = 'No date';
             if (event.date) {
-                let dateValue = '';
                 if (event.date.seconds) {
-                    const date = new Date(event.date.seconds * 1000);
-                    dateValue = date.toISOString().split('T')[0];
+                    dateStr = new Date(event.date.seconds * 1000).toLocaleDateString('en-US');
                 } else {
-                    dateValue = event.date;
+                    dateStr = new Date(event.date).toLocaleDateString('en-US');
                 }
-                document.getElementById('event-date').value = dateValue;
-            } else {
-                document.getElementById('event-date').value = '';
             }
-            
-            document.getElementById('event-location').value = event.location;
-            document.getElementById('event-description').value = event.description;
-            document.getElementById('event-status').value = event.status;
-            
-            // Change form to update mode
-            const form = document.getElementById('event-form');
-            const submitBtn = form.querySelector('button[type="submit"]');
-            submitBtn.textContent = 'Update Event';
-            
-            // Remove old submit listener
-            const newForm = form.cloneNode(true);
-            form.parentNode.replaceChild(newForm, form);
-            
-            // Add new submit listener for update
-            newForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                // Update event data
-                const updatedEvent = {
-                    title: document.getElementById('event-title').value,
-                    date: document.getElementById('event-date').value,
-                    location: document.getElementById('event-location').value,
-                    description: document.getElementById('event-description').value,
-                    status: document.getElementById('event-status').value
-                };
-                
-                updateEvent(eventId, updatedEvent)
-                    .then(() => {
-                        newForm.reset();
-                        closeAllModals();
-                        showNotification('Event updated successfully!', 'success');
-                    })
-                    .catch((error) => {
-                        console.error('Error updating event:', error);
-                        showNotification('Error updating event: ' + error.message, 'error');
-                    });
-            });
-            
-            openModal(eventModal);
-        }
+            return `<option value="${event.id}">${event.title} (${dateStr})</option>`;
+        }).join('');
+    
+    // Update deal modal event selector
+    if (dealEventSelect) {
+        dealEventSelect.innerHTML = '<option value="">-- Select Event --</option>' +
+            events.map(event => `<option value="${event.id}">${event.title}</option>`).join('');
+    }
+}
 
-        // Update goal progress function
-        function updateGoalProgress(goalId) {
-            const goal = goals.find(g => g.id === goalId);
-            if (!goal) return;
-            
-            const newProgress = prompt('Enter new progress percentage (0-100):', goal.progress);
-            if (newProgress !== null && !isNaN(newProgress) && newProgress >= 0 && newProgress <= 100) {
-                updateGoal(goalId, { progress: parseInt(newProgress) })
-                    .then(() => {
-                        showNotification('Goal progress updated!', 'success');
-                    })
-                    .catch((error) => {
-                        console.error('Error updating goal:', error);
-                        showNotification('Error updating goal: ' + error.message, 'error');
-                    });
+// Populate deal event selector with only events
+function populateDealEventSelect() {
+    if (dealEventSelect) {
+        dealEventSelect.innerHTML = '<option value="">-- Select Event --</option>' +
+            events.map(event => `<option value="${event.id}">${event.title}</option>`).join('');
+    }
+}
+
+// Update CRM summary - MODIFIKUAR PLOTËSISHT
+function updateCRMSummary(eventId = null) {
+    let totalDeals, wonDeals;
+    
+    if (eventId) {
+        // Filter deals for specific event
+        // PËRDOR === PËR KRAHASIM STRING
+        const eventDeals = deals.filter(deal => deal.eventId === eventId);
+        totalDeals = eventDeals.length;
+        wonDeals = eventDeals.filter(deal => deal.status === 'won').length;
+    } else {
+        // Show totals for all events
+        totalDeals = deals.length;
+        wonDeals = deals.filter(deal => deal.status === 'won').length;
+    }
+    
+    document.getElementById('total-deals').textContent = totalDeals;
+    document.getElementById('won-deals').textContent = wonDeals;
+}
+
+// Export deals to CSV
+function exportDealsToCSV() {
+    const eventId = crmEventSelect.value;
+    if (!eventId) {
+        showNotification('Please select an event first!', 'warning');
+        return;
+    }
+    
+    const eventDeals = deals.filter(deal => deal.eventId === eventId);
+    if (eventDeals.length === 0) {
+        showNotification('No deals to export for this event!', 'warning');
+        return;
+    }
+    
+    const event = events.find(e => e.id === eventId);
+    const eventName = event ? event.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'deals';
+    
+    // Create CSV content
+    const headers = ['Company', 'Contact', 'Email', 'Phone', 'Status', 'Last Updated', 'Notes'];
+    const csvRows = [headers.join(',')];
+    
+    eventDeals.forEach(deal => {
+        let lastUpdated = 'N/A';
+        if (deal.lastUpdated && deal.lastUpdated.seconds) {
+            lastUpdated = new Date(deal.lastUpdated.seconds * 1000).toISOString().split('T')[0];
+        }
+        
+        const row = [
+            `"${deal.company}"`,
+            `"${deal.contact || ''}"`,
+            `"${deal.email || ''}"`,
+            `"${deal.phone || ''}"`,
+            deal.status,
+            lastUpdated,
+            `"${deal.notes || ''}"`
+        ];
+        csvRows.push(row.join(','));
+    });
+    
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', `emk_deals_${eventName}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    showNotification('CSV exported successfully!', 'success');
+}
+
+// Notification function
+function showNotification(message, type) {
+    // Remove any existing notification
+    const existingNotification = document.querySelector('.notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <span>${message}</span>
+        <button class="notification-close">&times;</button>
+    `;
+    
+    // Add styles for notification
+    const style = document.createElement('style');
+    style.textContent = `
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 16px;
+            border-radius: 5px;
+            color: white;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 250px;
+            max-width: 90%;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 2000;
+            animation: slideIn 0.3s ease;
+        }
+        .notification.success { background-color: #27ae60; }
+        .notification.info { background-color: #3498db; }
+        .notification.warning { background-color: #f39c12; }
+        .notification.error { background-color: #e74c3c; }
+        .notification-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.3rem;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @media (max-width: 768px) {
+            .notification {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: calc(100% - 20px);
+                min-width: auto;
             }
         }
-
-        // Save deal changes from inline editing
-        function saveDealChanges(dealId, row) {
-            const updatedDeal = {
-                company: row.querySelector('.company').value,
-                contact: row.querySelector('.contact').value,
-                email: row.querySelector('.email').value,
-                phone: row.querySelector('.phone').value,
-                status: row.querySelector('.status').value
-            };
-            
-            updateDeal(dealId, updatedDeal)
-                .then(() => {
-                    showNotification('Deal updated successfully!', 'success');
-                })
-                .catch((error) => {
-                    console.error('Error updating deal:', error);
-                    showNotification('Error updating deal: ' + error.message, 'error');
-                });
+    `;
+    document.head.appendChild(style);
+    
+    // Add to page
+    document.body.appendChild(notification);
+    
+    // Add close functionality
+    notification.querySelector('.notification-close').addEventListener('click', () => {
+        notification.remove();
+    });
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
         }
-
-        // Update event selectors
-        function updateEventSelectors() {
-            // Update CRM event selector
-            crmEventSelect.innerHTML = '<option value="">-- Select an Event --</option>' +
-                events.map(event => {
-                    let dateStr = 'No date';
-                    if (event.date) {
-                        if (event.date.seconds) {
-                            dateStr = new Date(event.date.seconds * 1000).toLocaleDateString('en-US');
-                        } else {
-                            dateStr = new Date(event.date).toLocaleDateString('en-US');
-                        }
-                    }
-                    return `<option value="${event.id}">${event.title} (${dateStr})</option>`;
-                }).join('');
-            
-            // Update deal modal event selector
-            if (dealEventSelect) {
-                dealEventSelect.innerHTML = '<option value="">-- Select Event --</option>' +
-                    events.map(event => `<option value="${event.id}">${event.title}</option>`).join('');
-            }
-        }
-
-        // Populate deal event selector with only events
-        function populateDealEventSelect() {
-            if (dealEventSelect) {
-                dealEventSelect.innerHTML = '<option value="">-- Select Event --</option>' +
-                    events.map(event => `<option value="${event.id}">${event.title}</option>`).join('');
-            }
-        }
-
-        // Update CRM summary
-        function updateCRMSummary() {
-            const totalDeals = deals.length;
-            const wonDeals = deals.filter(deal => deal.status === 'won').length;
-            
-            document.getElementById('total-deals').textContent = totalDeals;
-            document.getElementById('won-deals').textContent = wonDeals;
-        }
-
-        // Export deals to CSV
-        function exportDealsToCSV() {
-            const eventId = crmEventSelect.value;
-            if (!eventId) {
-                showNotification('Please select an event first!', 'warning');
-                return;
-            }
-            
-            const eventDeals = deals.filter(deal => deal.eventId === eventId);
-            if (eventDeals.length === 0) {
-                showNotification('No deals to export for this event!', 'warning');
-                return;
-            }
-            
-            const event = events.find(e => e.id === eventId);
-            const eventName = event ? event.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'deals';
-            
-            // Create CSV content
-            const headers = ['Company', 'Contact', 'Email', 'Phone', 'Status', 'Last Updated', 'Notes'];
-            const csvRows = [headers.join(',')];
-            
-            eventDeals.forEach(deal => {
-                let lastUpdated = 'N/A';
-                if (deal.lastUpdated && deal.lastUpdated.seconds) {
-                    lastUpdated = new Date(deal.lastUpdated.seconds * 1000).toISOString().split('T')[0];
-                }
-                
-                const row = [
-                    `"${deal.company}"`,
-                    `"${deal.contact || ''}"`,
-                    `"${deal.email || ''}"`,
-                    `"${deal.phone || ''}"`,
-                    deal.status,
-                    lastUpdated,
-                    `"${deal.notes || ''}"`
-                ];
-                csvRows.push(row.join(','));
-            });
-            
-            const csvContent = csvRows.join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('hidden', '');
-            a.setAttribute('href', url);
-            a.setAttribute('download', `emk_deals_${eventName}_${new Date().toISOString().split('T')[0]}.csv`);
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            
-            showNotification('CSV exported successfully!', 'success');
-        }
-
-        // Notification function
-        function showNotification(message, type) {
-            // Remove any existing notification
-            const existingNotification = document.querySelector('.notification');
-            if (existingNotification) {
-                existingNotification.remove();
-            }
-            
-            // Create notification element
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.innerHTML = `
-                <span>${message}</span>
-                <button class="notification-close">&times;</button>
-            `;
-            
-            // Add styles for notification
-            const style = document.createElement('style');
-            style.textContent = `
-                .notification {
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    padding: 12px 16px;
-                    border-radius: 5px;
-                    color: white;
-                    font-weight: 600;
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    min-width: 250px;
-                    max-width: 90%;
-                    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-                    z-index: 2000;
-                    animation: slideIn 0.3s ease;
-                }
-                .notification.success { background-color: #27ae60; }
-                .notification.info { background-color: #3498db; }
-                .notification.warning { background-color: #f39c12; }
-                .notification.error { background-color: #e74c3c; }
-                .notification-close {
-                    background: none;
-                    border: none;
-                    color: white;
-                    font-size: 1.3rem;
-                    cursor: pointer;
-                    margin-left: 10px;
-                }
-                @keyframes slideIn {
-                    from { transform: translateX(100%); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-                
-                @media (max-width: 768px) {
-                    .notification {
-                        top: 10px;
-                        right: 10px;
-                        left: 10px;
-                        max-width: calc(100% - 20px);
-                        min-width: auto;
-                    }
-                }
-            `;
-            document.head.appendChild(style);
-            
-            // Add to page
-            document.body.appendChild(notification);
-            
-            // Add close functionality
-            notification.querySelector('.notification-close').addEventListener('click', () => {
-                notification.remove();
-            });
-            
-            // Auto-remove after 5 seconds
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.remove();
-                }
-            }, 5000);
-        }
+    }, 5000);
+}
     </script>
 </body>
 </html>
