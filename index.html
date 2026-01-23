@@ -1269,8 +1269,7 @@
     </div>
 
     <script>
-        // ==================== FIREBASE CONFIGURATION ====================
-// KONFIGURIMI YT I FIREBASE - E KE TË SHTËNË
+   // ==================== FIREBASE CONFIGURATION ====================
 const firebaseConfig = {
     apiKey: "AIzaSyCclKkJ3yIhAqSu6P_Dh9mz4FZBxl0832Y",
     authDomain: "emk-database.firebaseapp.com",
@@ -1736,14 +1735,20 @@ window.addEventListener('click', (e) => {
 
 function openModal(modal) {
     closeAllModals();
+    
+    // If opening event modal, reset form first
+    if (modal.id === 'event-modal') {
+        resetEventFormToAddMode();
+    }
+    
     modal.classList.add('active');
     
     // Set today's date as default for date inputs
     const today = new Date().toISOString().split('T')[0];
-    if (document.getElementById('event-date')) {
+    if (document.getElementById('event-date') && modal.id === 'event-modal') {
         document.getElementById('event-date').value = today;
     }
-    if (document.getElementById('goal-deadline')) {
+    if (document.getElementById('goal-deadline') && modal.id === 'goal-modal') {
         document.getElementById('goal-deadline').value = today;
     }
 }
@@ -1785,28 +1790,55 @@ crmEventSelect.addEventListener('change', function() {
     }
 });
 
-// Form submissions
+// Form submissions - MODIFIKUAR PËR EVENT FORM
 eventForm.addEventListener('submit', function(e) {
     e.preventDefault();
     
-    const newEvent = {
-        title: document.getElementById('event-title').value,
-        date: document.getElementById('event-date').value,
-        location: document.getElementById('event-location').value,
-        description: document.getElementById('event-description').value,
-        status: document.getElementById('event-status').value
-    };
+    // Check if we're in edit mode by looking for data-edit-id attribute
+    const editEventId = this.getAttribute('data-edit-id');
     
-    saveEvent(newEvent)
-        .then(() => {
-            eventForm.reset();
-            closeAllModals();
-            showNotification('Event added successfully!', 'success');
-        })
-        .catch((error) => {
-            console.error('Error adding event:', error);
-            showNotification('Error adding event: ' + error.message, 'error');
-        });
+    if (editEventId) {
+        // Update existing event
+        const updatedEvent = {
+            title: document.getElementById('event-title').value,
+            date: document.getElementById('event-date').value,
+            location: document.getElementById('event-location').value,
+            description: document.getElementById('event-description').value,
+            status: document.getElementById('event-status').value
+        };
+        
+        updateEvent(editEventId, updatedEvent)
+            .then(() => {
+                // Reset form to add mode
+                resetEventFormToAddMode();
+                closeAllModals();
+                showNotification('Event updated successfully!', 'success');
+            })
+            .catch((error) => {
+                console.error('Error updating event:', error);
+                showNotification('Error updating event: ' + error.message, 'error');
+            });
+    } else {
+        // Add new event
+        const newEvent = {
+            title: document.getElementById('event-title').value,
+            date: document.getElementById('event-date').value,
+            location: document.getElementById('event-location').value,
+            description: document.getElementById('event-description').value,
+            status: document.getElementById('event-status').value
+        };
+        
+        saveEvent(newEvent)
+            .then(() => {
+                eventForm.reset();
+                closeAllModals();
+                showNotification('Event added successfully!', 'success');
+            })
+            .catch((error) => {
+                console.error('Error adding event:', error);
+                showNotification('Error adding event: ' + error.message, 'error');
+            });
+    }
 });
 
 sponsorForm.addEventListener('submit', function(e) {
@@ -2271,58 +2303,76 @@ function renderCRMTable(eventId) {
     });
 }
 
-// Edit event function
+// Edit event function - MODIFIKUAR
 function editEvent(eventId) {
     const event = events.find(e => e.id === eventId);
     if (!event) return;
     
-    // Populate the form with event data
-    document.getElementById('event-title').value = event.title;
+    // Krijo një modal të ri për editim
+    const editModal = document.createElement('div');
+    editModal.className = 'modal active';
+    editModal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Edit Event</h2>
+                <button class="close-edit-modal">&times;</button>
+            </div>
+            <form id="edit-event-form">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="edit-event-title" class="form-label">Event Title *</label>
+                        <input type="text" id="edit-event-title" class="form-input" required value="${event.title}" placeholder="Enter event title">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-event-date" class="form-label">Event Date *</label>
+                        <input type="date" id="edit-event-date" class="form-input" required value="${event.date.seconds ? new Date(event.date.seconds * 1000).toISOString().split('T')[0] : event.date}">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-event-location" class="form-label">Location *</label>
+                        <input type="text" id="edit-event-location" class="form-input" required value="${event.location}" placeholder="Enter event location">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-event-description" class="form-label">Description *</label>
+                        <textarea id="edit-event-description" class="form-textarea" required placeholder="Enter event description">${event.description}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-event-status" class="form-label">Status</label>
+                        <select id="edit-event-status" class="form-select">
+                            <option value="pending" ${event.status === 'pending' ? 'selected' : ''}>Pending</option>
+                            <option value="confirmed" ${event.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
+                            <option value="completed" ${event.status === 'completed' ? 'selected' : ''}>Completed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn close-edit-modal">Cancel</button>
+                    <button type="submit" class="btn">Update Event</button>
+                </div>
+            </form>
+        </div>
+    `;
     
-    // Convert Firestore timestamp to date string
-    if (event.date) {
-        let dateValue = '';
-        if (event.date.seconds) {
-            const date = new Date(event.date.seconds * 1000);
-            dateValue = date.toISOString().split('T')[0];
-        } else {
-            dateValue = event.date;
-        }
-        document.getElementById('event-date').value = dateValue;
-    } else {
-        document.getElementById('event-date').value = '';
-    }
+    document.body.appendChild(editModal);
     
-    document.getElementById('event-location').value = event.location;
-    document.getElementById('event-description').value = event.description;
-    document.getElementById('event-status').value = event.status;
+    // Add event listeners
+    editModal.querySelector('.close-edit-modal').addEventListener('click', () => {
+        editModal.remove();
+    });
     
-    // Change form to update mode
-    const form = document.getElementById('event-form');
-    const submitBtn = form.querySelector('button[type="submit"]');
-    submitBtn.textContent = 'Update Event';
-    
-    // Remove old submit listener
-    const newForm = form.cloneNode(true);
-    form.parentNode.replaceChild(newForm, form);
-    
-    // Add new submit listener for update
-    newForm.addEventListener('submit', function(e) {
+    editModal.querySelector('#edit-event-form').addEventListener('submit', function(e) {
         e.preventDefault();
         
-        // Update event data
         const updatedEvent = {
-            title: document.getElementById('event-title').value,
-            date: document.getElementById('event-date').value,
-            location: document.getElementById('event-location').value,
-            description: document.getElementById('event-description').value,
-            status: document.getElementById('event-status').value
+            title: document.getElementById('edit-event-title').value,
+            date: document.getElementById('edit-event-date').value,
+            location: document.getElementById('edit-event-location').value,
+            description: document.getElementById('edit-event-description').value,
+            status: document.getElementById('edit-event-status').value
         };
         
         updateEvent(eventId, updatedEvent)
             .then(() => {
-                newForm.reset();
-                closeAllModals();
+                editModal.remove();
                 showNotification('Event updated successfully!', 'success');
             })
             .catch((error) => {
@@ -2331,7 +2381,31 @@ function editEvent(eventId) {
             });
     });
     
-    openModal(eventModal);
+    // Close when clicking outside
+    editModal.addEventListener('click', (e) => {
+        if (e.target === editModal) {
+            editModal.remove();
+        }
+    });
+}
+
+// Reset event form to add mode - FUNKSION I RI
+function resetEventFormToAddMode() {
+    const form = document.getElementById('event-form');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    // Reset button text
+    submitBtn.textContent = 'Add Event';
+    
+    // Remove edit ID attribute
+    form.removeAttribute('data-edit-id');
+    
+    // Reset form fields
+    form.reset();
+    
+    // Set today's date as default
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('event-date').value = today;
 }
 
 // Update goal progress function
